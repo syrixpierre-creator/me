@@ -1,0 +1,65 @@
+name: Build & Deploy Flutter Web
+
+# Compile le code Flutter (mobile/) en site web statique, puis committe le
+# résultat dans web/flutter-app/. Railway (branché sur ce repo GitHub) déploie
+# ensuite automatiquement au push suivant, car web/flutter-app/ est servi par
+# Express (voir src/server.js) exactement comme le reste de web/.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/lib/**"
+      - "mobile/pubspec.yaml"
+      - ".github/workflows/flutter-web.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout du repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Installer Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Activer la plateforme Web (si absente)
+        working-directory: mobile
+        run: |
+          if [ ! -d "web" ]; then
+            flutter create --platforms=web .
+          fi
+
+      - name: Récupérer les dépendances
+        working-directory: mobile
+        run: flutter pub get
+
+      - name: Build Flutter Web (release)
+        working-directory: mobile
+        run: flutter build web --release --base-href /app/
+
+      - name: Copier le build dans web/flutter-app
+        run: |
+          rm -rf web/flutter-app
+          mkdir -p web/flutter-app
+          cp -r mobile/build/web/. web/flutter-app/
+
+      - name: Commit & push le build
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add web/flutter-app
+          if git diff --cached --quiet; then
+            echo "Rien de nouveau à committer."
+          else
+            git commit -m "chore: build Flutter Web [skip ci]"
+            git push
+          fi
