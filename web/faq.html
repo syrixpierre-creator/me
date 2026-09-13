@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SYRIX FLIX — FAQ</title>
+<link rel="stylesheet" href="assets/css/site.css" />
+</head>
+<body class="sf-legal-page">
+<main>
+  <h1>Foire aux questions</h1>
+  <p class="sf-updated">Une question qui n'est pas ici ? Écrivez-nous à
+    <a href="mailto:contact@votredomaine.com">contact@votredomaine.com</a>.</p>
+
+  <div id="faq-list">
+    <div class="sf-faq-item">
+      <button class="sf-faq-question">
+        Dois-je télécharger l'application pour regarder du contenu ?
+        <span class="sf-faq-chevron">▾</span>
+      </button>
+      <div class="sf-faq-answer">
+        Non. Vous pouvez utiliser SYRIX FLIX directement depuis le site web.
+        L'application (APK) est proposée en option pour une expérience plus fluide,
+        mais vous pouvez l'ignorer et continuer sur le site.
+      </div>
+    </div>
+
+    <div class="sf-faq-item">
+      <button class="sf-faq-question">
+        Comment regarder en plein écran ?
+        <span class="sf-faq-chevron">▾</span>
+      </button>
+      <div class="sf-faq-answer">
+        Appuyez sur l'icône plein écran dans le lecteur vidéo. Sur mobile, l'écran
+        peut automatiquement passer en mode paysage ; vous pouvez changer ce
+        comportement dans le menu Réglages (⚙) du lecteur.
+      </div>
+    </div>
+
+    <div class="sf-faq-item">
+      <button class="sf-faq-question">
+        Comment verrouiller la rotation de l'écran pendant la lecture ?
+        <span class="sf-faq-chevron">▾</span>
+      </button>
+      <div class="sf-faq-answer">
+        Dans le lecteur, ouvrez le menu Réglages (⚙) puis choisissez
+        "Verrouiller portrait", "Verrouiller paysage" ou "Rotation automatique".
+        Ce réglage n'est disponible que sur les navigateurs qui supportent le
+        verrouillage d'orientation d'écran.
+      </div>
+    </div>
+
+    <div class="sf-faq-item">
+      <button class="sf-faq-question">
+        Qu'est-ce que la clé API développeur dans mon profil ?
+        <span class="sf-faq-chevron">▾</span>
+      </button>
+      <div class="sf-faq-answer">
+        C'est une clé optionnelle destinée aux développeurs souhaitant intégrer le
+        catalogue SYRIX FLIX à leur propre site. Elle est liée à votre nom de
+        domaine (pas à une adresse IP) pour plus de sécurité. Voir la
+        <a href="#">documentation d'intégration</a>.
+      </div>
+    </div>
+
+    <div class="sf-faq-item">
+      <button class="sf-faq-question">
+        Comment gérer mes cookies ?
+        <span class="sf-faq-chevron">▾</span>
+      </button>
+      <div class="sf-faq-answer">
+        Lors de votre première visite, un bandeau vous permet d'accepter ou de
+        refuser les cookies non essentiels. Vous pouvez aussi les gérer dans les
+        paramètres de votre navigateur. Voir notre
+        <a href="confidentialite.html">politique de confidentialité</a>.
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  document.querySelectorAll('.sf-faq-question').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      btn.closest('.sf-faq-item').classList.toggle('sf-open');
+    });
+  });
+</script>
+</body>
+</html>

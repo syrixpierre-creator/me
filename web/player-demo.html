@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>SYRIX FLIX — Lecture</title>
+<link rel="stylesheet" href="assets/css/site.css" />
+<style>
+  body { margin: 0; background: #0b0c10; font-family: -apple-system, sans-serif; }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 24px 16px 80px; }
+  h1 { color: #fff; font-size: 1.3rem; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Oppenheimer</h1>
+    <div id="player-container" class="sf-player">
+      <video id="player-video" poster="" playsinline
+        src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"></video>
+    </div>
+  </div>
+
+  <script src="assets/js/video-player.js"></script>
+  <script src="assets/js/apk-banner.js"></script>
+  <script src="assets/js/cookie-consent.js"></script>
+  <script>
+    SyrixPlayer.init({
+      containerId: "player-container",
+      videoId: "player-video",
+      autoLockLandscapeOnFullscreen: true,
+    });
+
+    // La bannière APK ne s'affiche que sur Android, et l'utilisateur peut
+    // l'ignorer pour continuer directement sur le site.
+    SyrixApkBanner.init({
+      apkUrl: "/downloads/syrix-flix.apk",
+      onlyAndroid: true,
+      remindAfterDays: 7,
+    });
+
+    SyrixCookieConsent.init({
+      privacyUrl: "confidentialite.html",
+      termsUrl: "conditions-utilisation.html",
+    });
+  </script>
+</body>
+</html>

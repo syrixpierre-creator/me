@@ -1,0 +1,182 @@
+:root {
+  --sf-bg: #0b0c10;
+  --sf-surface: #121212;
+  --sf-accent: #e50914;
+  --sf-text: #ffffff;
+  --sf-muted: #a0a0a0;
+  --sf-border: #232323;
+}
+
+/* =========================================================
+   1. Bannière de suggestion de téléchargement APK
+   ========================================================= */
+.sf-apk-banner {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--sf-surface);
+  border-top: 1px solid var(--sf-border);
+  box-shadow: 0 -8px 24px rgba(0,0,0,0.45);
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  transform: translateY(120%);
+  transition: transform 0.35s ease;
+}
+.sf-apk-banner.sf-show { transform: translateY(0); }
+
+.sf-apk-banner__icon {
+  width: 42px; height: 42px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--sf-accent), #fff);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #000; font-weight: 900; font-size: 18px;
+}
+.sf-apk-banner__text { flex: 1; min-width: 0; }
+.sf-apk-banner__title { color: var(--sf-text); font-weight: 700; font-size: 14px; margin: 0; }
+.sf-apk-banner__subtitle { color: var(--sf-muted); font-size: 12px; margin: 2px 0 0; }
+
+.sf-apk-banner__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.sf-btn {
+  border: none; cursor: pointer; font-weight: 700; font-size: 13px;
+  border-radius: 20px; padding: 9px 16px;
+  font-family: inherit;
+}
+.sf-btn--primary { background: var(--sf-accent); color: #fff; }
+.sf-btn--ghost { background: transparent; color: var(--sf-muted); }
+.sf-btn--ghost:hover { color: var(--sf-text); }
+
+@media (max-width: 480px) {
+  .sf-apk-banner__subtitle { display: none; }
+  .sf-apk-banner { padding: 12px; }
+}
+
+/* =========================================================
+   2. Bandeau cookies (RGPD)
+   ========================================================= */
+.sf-cookie-banner {
+  position: fixed;
+  left: 16px; right: 16px; bottom: 16px;
+  max-width: 480px;
+  margin: 0 auto;
+  z-index: 9998;
+  background: var(--sf-surface);
+  border: 1px solid var(--sf-border);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  transform: translateY(150%);
+  opacity: 0;
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+.sf-cookie-banner.sf-show { transform: translateY(0); opacity: 1; }
+.sf-cookie-banner p { color: var(--sf-muted); font-size: 13px; line-height: 1.5; margin: 0 0 14px; }
+.sf-cookie-banner a { color: var(--sf-accent); text-decoration: underline; }
+.sf-cookie-banner__actions { display: flex; gap: 10px; }
+.sf-cookie-banner__actions .sf-btn { flex: 1; }
+
+/* =========================================================
+   3. Lecteur vidéo plein écran + réglages
+   ========================================================= */
+.sf-player {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.sf-player video, .sf-player iframe {
+  width: 100%; height: 100%; border: none; display: block;
+}
+.sf-player.sf-fullscreen {
+  border-radius: 0;
+  aspect-ratio: auto;
+}
+
+.sf-player__controls {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.sf-player:hover .sf-player__controls,
+.sf-player.sf-controls-visible .sf-player__controls { opacity: 1; }
+
+.sf-icon-btn {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--sf-text); width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+}
+.sf-icon-btn:hover { background: rgba(255,255,255,0.1); }
+.sf-player__spacer { flex: 1; }
+
+.sf-settings-menu {
+  position: absolute;
+  bottom: 52px; right: 14px;
+  background: rgba(18,18,18,0.97);
+  border: 1px solid var(--sf-border);
+  border-radius: 10px;
+  min-width: 190px;
+  padding: 6px;
+  display: none;
+  z-index: 10;
+}
+.sf-settings-menu.sf-open { display: block; }
+.sf-settings-menu__item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 12px; border-radius: 6px; cursor: pointer;
+  color: var(--sf-text); font-size: 13px;
+}
+.sf-settings-menu__item:hover { background: rgba(255,255,255,0.06); }
+.sf-settings-menu__item[data-active="true"] { color: var(--sf-accent); font-weight: 700; }
+
+/* =========================================================
+   4. Pages statiques (Confidentialité / CGU / FAQ)
+   ========================================================= */
+.sf-legal-page {
+  background: var(--sf-bg);
+  color: var(--sf-text);
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  min-height: 100vh;
+}
+.sf-legal-page main {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 48px 20px 96px;
+}
+.sf-legal-page h1 { font-size: 1.8rem; margin-bottom: 8px; }
+.sf-legal-page .sf-updated { color: var(--sf-muted); font-size: 13px; margin-bottom: 32px; }
+.sf-legal-page h2 {
+  font-size: 1.1rem; margin-top: 32px; margin-bottom: 10px;
+  border-left: 4px solid var(--sf-accent); padding-left: 10px;
+}
+.sf-legal-page p, .sf-legal-page li { color: #e6e6e6; line-height: 1.7; font-size: 0.95rem; }
+.sf-legal-page a { color: var(--sf-accent); }
+
+.sf-faq-item { border-bottom: 1px solid var(--sf-border); }
+.sf-faq-question {
+  width: 100%; text-align: left; background: none; border: none;
+  color: var(--sf-text); font-size: 0.98rem; font-weight: 600;
+  padding: 16px 0; cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: inherit;
+}
+.sf-faq-answer {
+  max-height: 0; overflow: hidden; transition: max-height 0.25s ease;
+  color: var(--sf-muted); font-size: 0.9rem; line-height: 1.6;
+}
+.sf-faq-item.sf-open .sf-faq-answer { max-height: 300px; padding-bottom: 16px; }
+.sf-faq-item.sf-open .sf-faq-chevron { transform: rotate(180deg); }
+.sf-faq-chevron { transition: transform 0.2s ease; color: var(--sf-accent); }
