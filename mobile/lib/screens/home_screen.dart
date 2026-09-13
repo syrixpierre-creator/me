@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../models/media_model.dart';
+import '../services/api_service.dart';
 import '../widgets/syrix_logo.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/media_card.dart';
@@ -88,7 +90,7 @@ class _HomeFeed extends StatelessWidget {
           const SizedBox(height: 24),
           _CarouselSection(title: 'Continuer la lecture', showProgress: true),
           const SizedBox(height: 24),
-          _CarouselSection(title: 'Tendances actuelles', showProgress: false),
+          _CarouselSection(title: 'Tendances actuelles', showProgress: false, apiType: 'movies'),
           const SizedBox(height: 60),
           _QuickLinksRow(),
         ],
@@ -97,10 +99,30 @@ class _HomeFeed extends StatelessWidget {
   }
 }
 
-class _CarouselSection extends StatelessWidget {
+class _CarouselSection extends StatefulWidget {
   final String title;
   final bool showProgress;
-  const _CarouselSection({required this.title, required this.showProgress});
+  final String? apiType; // si fourni, charge de vraies données via l'API
+  const _CarouselSection({required this.title, required this.showProgress, this.apiType});
+
+  @override
+  State<_CarouselSection> createState() => _CarouselSectionState();
+}
+
+class _CarouselSectionState extends State<_CarouselSection> {
+  Future<List<MediaItem>>? _future;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.apiType != null) {
+      _future = ApiService.fetchList(widget.apiType!).then((json) {
+        if (json['success'] != true) return <MediaItem>[];
+        final List data = json['data'] as List? ?? [];
+        return data.map((e) => MediaItem.fromJson(e as Map<String, dynamic>)).toList();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,23 +131,48 @@ class _CarouselSection extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(title, style: const TextStyle(
+          child: Text(widget.title, style: const TextStyle(
             color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold,
           )),
         ),
         const SizedBox(height: 12),
         SizedBox(
           height: 160,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: 6,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, i) => MediaCard(
-              title: 'Titre ${i + 1}',
-              progress: showProgress ? (i % 4) / 4 : null,
-            ),
-          ),
+          child: _future == null
+              ? ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: 6,
+                  separatorBuilder: (_, __) => const SizedBox(width: 12),
+                  itemBuilder: (context, i) => MediaCard(
+                    title: 'Titre ${i + 1}',
+                    progress: widget.showProgress ? (i % 4) / 4 : null,
+                  ),
+                )
+              : FutureBuilder<List<MediaItem>>(
+                  future: _future,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+                    }
+                    final items = snapshot.data ?? [];
+                    if (items.isEmpty) {
+                      return const Center(
+                        child: Text('Aucun contenu disponible.', style: TextStyle(color: AppColors.textSecondary)),
+                      );
+                    }
+                    return ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      itemBuilder: (context, i) => MediaCard(
+                        title: items[i].title,
+                        imageUrl: items[i].image.isNotEmpty ? items[i].image : null,
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );

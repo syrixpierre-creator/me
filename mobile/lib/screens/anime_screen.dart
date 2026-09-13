@@ -9,6 +9,7 @@ class AnimeScreen extends StatelessWidget {
     return const CatalogScaffold(
       pageTitle: 'Anime',
       featuredTitle: 'Jujutsu Kaisen',
+      apiType: 'anime',
       sortTabs: ['Nouveautés', 'Populaire'],
       genres: ['Shonen', 'Action', 'Fantasy', 'Romance'],
     );

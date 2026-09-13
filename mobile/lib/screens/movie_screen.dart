@@ -9,6 +9,7 @@ class MovieScreen extends StatelessWidget {
     return const CatalogScaffold(
       pageTitle: 'Films',
       featuredTitle: 'Oppenheimer',
+      apiType: 'movies',
       sortTabs: ['Tendances', 'Action'],
       genres: ['Action', 'Drame', 'Sci-Fi'],
     );

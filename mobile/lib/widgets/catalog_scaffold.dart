@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../models/media_model.dart';
+import '../services/api_service.dart';
 import 'media_card.dart';
 
 /// Squelette commun aux écrans Anime / Movie / Série :
-/// bannière vedette, onglets de tri, pilules de genre, grille de cartes.
+/// bannière vedette, onglets de tri, pilules de genre, grille de cartes —
+/// alimentée par l'API réelle (ApiService.fetchList) au lieu de données
+/// statiques.
 class CatalogScaffold extends StatefulWidget {
   final String pageTitle;
   final String featuredTitle;
+  final String apiType; // "movies" | "series" | "anime" | "dramas"
   final List<String> sortTabs; // ex: ["Nouveautés", "Populaire"]
   final List<String> genres; // ex: ["Shonen", "Action"]
 
@@ -14,6 +19,7 @@ class CatalogScaffold extends StatefulWidget {
     super.key,
     required this.pageTitle,
     required this.featuredTitle,
+    required this.apiType,
     required this.sortTabs,
     required this.genres,
   });
@@ -25,6 +31,31 @@ class CatalogScaffold extends StatefulWidget {
 class _CatalogScaffoldState extends State<CatalogScaffold> {
   int _sortIndex = 0;
   String? _selectedGenre;
+
+  late Future<List<MediaItem>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _load();
+  }
+
+  Future<List<MediaItem>> _load() async {
+    final json = await ApiService.fetchList(widget.apiType, genre: _selectedGenre);
+    if (json['success'] != true) {
+      final message = (json['error'] is Map) ? json['error']['message'] : null;
+      throw Exception(message ?? 'Erreur de chargement du catalogue.');
+    }
+    final List data = json['data'] as List? ?? [];
+    return data.map((e) => MediaItem.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  void _onGenreTap(String g) {
+    setState(() {
+      _selectedGenre = _selectedGenre == g ? null : g;
+      _future = _load();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,19 +124,62 @@ class _CatalogScaffoldState extends State<CatalogScaffold> {
             ),
             const SizedBox(height: 14),
 
-            // Grille de résultats
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
+            // Grille de résultats — alimentée par l'API
+            Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.62,
+              child: FutureBuilder<List<MediaItem>>(
+                future: _future,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Center(child: CircularProgressIndicator(color: AppColors.accent)),
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            const Icon(Icons.wifi_off, color: AppColors.textSecondary, size: 32),
+                            const SizedBox(height: 8),
+                            Text('${snapshot.error}'.replaceFirst('Exception: ', ''),
+                                style: const TextStyle(color: AppColors.textSecondary), textAlign: TextAlign.center),
+                            const SizedBox(height: 12),
+                            TextButton(
+                              onPressed: () => setState(() => _future = _load()),
+                              child: const Text('Réessayer'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  final items = snapshot.data ?? [];
+                  if (items.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 40),
+                      child: Center(child: Text('Aucun résultat.', style: TextStyle(color: AppColors.textSecondary))),
+                    );
+                  }
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 0.62,
+                    ),
+                    itemCount: items.length,
+                    itemBuilder: (context, i) => MediaCard(
+                      title: items[i].title,
+                      imageUrl: items[i].image.isNotEmpty ? items[i].image : null,
+                    ),
+                  );
+                },
               ),
-              itemCount: 9,
-              itemBuilder: (context, i) => MediaCard(title: '${widget.pageTitle} ${i + 1}'),
             ),
             const SizedBox(height: 18),
 
@@ -125,7 +199,7 @@ class _CatalogScaffoldState extends State<CatalogScaffold> {
                 children: widget.genres.map((g) {
                   final selected = _selectedGenre == g;
                   return GestureDetector(
-                    onTap: () => setState(() => _selectedGenre = selected ? null : g),
+                    onTap: () => _onGenreTap(g),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(

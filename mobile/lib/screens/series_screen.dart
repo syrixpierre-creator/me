@@ -9,6 +9,7 @@ class SeriesScreen extends StatelessWidget {
     return const CatalogScaffold(
       pageTitle: 'Séries',
       featuredTitle: 'The Crown',
+      apiType: 'series',
       sortTabs: ['Drame', 'Thriller'],
       genres: ['Drame', 'Thriller', 'Comédie'],
     );
