@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>SYRIX FLIX — Inscription</title>
+<link rel="stylesheet" href="assets/css/site.css" />
+<link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body class="sf-app">
+  <div class="sf-auth-wrap">
+    <span class="sf-logo sf-logo--lg">
+      <span class="sf-logo__mark">S</span>
+      <span class="sf-logo__text"><span>SYRIX</span><span class="sf-flix">FLIX</span></span>
+    </span>
+    <h1>Inscription</h1>
+
+    <form id="signupForm">
+      <div class="sf-field">
+        <label for="username">Nom Complet</label>
+        <input type="text" id="username" placeholder="Entrez votre nom complet" required minlength="3" maxlength="32" autocomplete="name" />
+      </div>
+      <div class="sf-field">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" placeholder="Entrez votre e-mail" required autocomplete="email" />
+      </div>
+      <div class="sf-field">
+        <label for="password">Mot de Passe</label>
+        <input type="password" id="password" placeholder="Entrez votre password" required minlength="6" autocomplete="new-password" />
+        <button type="button" class="sf-field__toggle" data-toggle="password">👁</button>
+      </div>
+      <div class="sf-field">
+        <label for="confirmPassword">Confirmer le Mot de Passe</label>
+        <input type="password" id="confirmPassword" placeholder="Confirmer le Mot de Passe" required autocomplete="new-password" />
+        <button type="button" class="sf-field__toggle" data-toggle="confirmPassword">👁</button>
+      </div>
+
+      <p class="sf-error" id="signupError" style="display:none;"></p>
+
+      <button type="submit" class="sf-btn-block" id="signupSubmit">CRÉER UN COMPTE</button>
+    </form>
+
+    <p class="sf-subtext"><a href="login.html">Déjà membre ? Se connecter</a></p>
+  </div>
+
+  <script src="assets/js/app-common.js"></script>
+  <script>
+    document.querySelectorAll("[data-toggle]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const input = document.getElementById(btn.dataset.toggle);
+        input.type = input.type === "password" ? "text" : "password";
+      });
+    });
+
+    if (SyrixAuth.getToken()) window.location.href = "accueil.html";
+
+    const form = document.getElementById("signupForm");
+    const errorEl = document.getElementById("signupError");
+    const submitBtn = document.getElementById("signupSubmit");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorEl.style.display = "none";
+
+      const username = document.getElementById("username").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+
+      if (password !== confirmPassword) {
+        errorEl.textContent = "Les mots de passe ne correspondent pas.";
+        errorEl.style.display = "block";
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "INSCRIPTION...";
+
+      const res = await SyrixAuth.api("/auth/signup", {
+        method: "POST",
+        body: JSON.stringify({ username, email, password, confirmPassword }),
+      });
+
+      if (res.success) {
+        SyrixAuth.setSession(res.data.token, res.data.user);
+        window.location.href = "accueil.html";
+      } else {
+        errorEl.textContent = res.error?.message || "Inscription impossible.";
+        errorEl.style.display = "block";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "CRÉER UN COMPTE";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>SYRIX FLIX — Séries</title>
+<link rel="stylesheet" href="assets/css/site.css" />
+<link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body class="sf-app">
+  <div class="sf-topbar">
+    <button class="sf-topbar__back" onclick="window.location.href='accueil.html'">←</button>
+    <h1 class="sf-topbar__title">Séries</h1>
+  </div>
+
+  <div class="sf-banner"><span>The Crown</span></div>
+
+  <div class="sf-tabs" id="sortTabs">
+    <button class="sf-active" data-i="0">Drame</button>
+    <button data-i="1">Thriller</button>
+  </div>
+
+  <div class="sf-grid" id="grid"></div>
+
+  <div style="height:18px"></div>
+  <p style="padding:0 16px;font-weight:700;font-size:15px;margin:0 0 10px;">Genre</p>
+  <div class="sf-pills" id="genrePills">
+    <button class="sf-pill">Drame</button>
+    <button class="sf-pill">Thriller</button>
+    <button class="sf-pill">Comédie</button>
+  </div>
+  <div style="height:32px"></div>
+
+  <script src="assets/js/app-common.js"></script>
+  <script>
+    SyrixAuth.requireAuth();
+
+    const grid = document.getElementById("grid");
+    for (let i = 1; i <= 9; i++) grid.insertAdjacentHTML("beforeend", sfMediaCard("Série " + i));
+
+    document.querySelectorAll("#sortTabs button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#sortTabs button").forEach((b) => b.classList.remove("sf-active"));
+        btn.classList.add("sf-active");
+      });
+    });
+    document.querySelectorAll("#genrePills .sf-pill").forEach((pill) => {
+      pill.addEventListener("click", () => pill.classList.toggle("sf-active"));
+    });
+  </script>
+</body>
+</html>

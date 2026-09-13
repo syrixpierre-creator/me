@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>SYRIX FLIX — Accueil</title>
+<link rel="stylesheet" href="assets/css/site.css" />
+<link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body class="sf-app">
+  <div class="sf-topbar">
+    <button class="sf-topbar__burger" id="sfBurger">☰</button>
+    <span class="sf-logo">
+      <span class="sf-logo__mark">S</span>
+      <span class="sf-logo__text"><span>SYRIX</span><span class="sf-flix">FLIX</span></span>
+    </span>
+  </div>
+
+  <!-- Onglet : Accueil -->
+  <section class="sf-tabpanel sf-active" id="tab-accueil">
+    <div class="sf-banner"><span>À l'affiche cette semaine</span></div>
+
+    <div class="sf-section">
+      <h2>Continuer la lecture</h2>
+      <div class="sf-carousel" id="carousel-continue"></div>
+    </div>
+
+    <div class="sf-section">
+      <h2>Tendances actuelles</h2>
+      <div class="sf-carousel" id="carousel-trending"></div>
+    </div>
+
+    <div class="sf-section">
+      <div class="sf-chips">
+        <a class="sf-chip" href="anime.html">Anime</a>
+        <a class="sf-chip" href="movie.html">Films</a>
+        <a class="sf-chip" href="serie.html">Séries</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Onglet : Recherche -->
+  <section class="sf-tabpanel" id="tab-recherche">
+    <p class="sf-placeholder">Recherche</p>
+  </section>
+
+  <!-- Onglet : Téléchargements -->
+  <section class="sf-tabpanel" id="tab-telechargements">
+    <p class="sf-placeholder">Téléchargements</p>
+  </section>
+
+  <nav class="sf-bottomnav">
+    <button class="sf-active" data-tab="accueil"><i>⌂</i>Accueil</button>
+    <button data-tab="recherche"><i>⌕</i>Recherche</button>
+    <button data-tab="telechargements"><i>⬇</i>Téléchargements</button>
+    <button id="navProfil"><i>☺</i>Profil</button>
+  </nav>
+
+  <script src="assets/js/app-common.js"></script>
+  <script>
+    SyrixAuth.requireAuth();
+    SyrixDrawer.mount("#sfBurger");
+
+    // Carousels (mêmes données de démonstration que l'app mobile — à
+    // remplacer par un vrai appel API dès que le catalogue sera branché).
+    const continueEl = document.getElementById("carousel-continue");
+    const trendingEl = document.getElementById("carousel-trending");
+    for (let i = 1; i <= 6; i++) {
+      continueEl.insertAdjacentHTML("beforeend", sfMediaCard("Titre " + i, ((i - 1) % 4) / 4));
+      trendingEl.insertAdjacentHTML("beforeend", sfMediaCard("Titre " + i, null));
+    }
+
+    // Navigation basse : bascule d'onglets, sauf "Profil" qui ouvre sa page dédiée.
+    document.querySelectorAll(".sf-bottomnav button[data-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".sf-bottomnav button[data-tab]").forEach((b) => b.classList.remove("sf-active"));
+        btn.classList.add("sf-active");
+        document.querySelectorAll(".sf-tabpanel").forEach((p) => p.classList.remove("sf-active"));
+        document.getElementById("tab-" + btn.dataset.tab).classList.add("sf-active");
+      });
+    });
+    document.getElementById("navProfil").addEventListener("click", () => {
+      window.location.href = "profil.html";
+    });
+  </script>
+</body>
+</html>

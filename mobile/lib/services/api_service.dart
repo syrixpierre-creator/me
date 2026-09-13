@@ -5,8 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Client pour VOTRE backend SYRIX FLIX (pas l'API catalogue directement) :
 /// il gère le token de session et relaie vers /api/v1/*.
 class ApiService {
-  // À remplacer par le domaine réel de votre backend en production.
-  static const String baseUrl = "me-production-d7e6.up.railway.app/api/v1";
+  // À remplacer par le domaine réel de votre backend en production si besoin.
+  static const String baseUrl = "https://me-production-d7e6.up.railway.app/api/v1";
 
   static Future<String?> _token() async {
     final prefs = await SharedPreferences.getInstance();

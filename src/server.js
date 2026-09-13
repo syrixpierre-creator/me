@@ -37,17 +37,31 @@ app.use("/docs", express.static(path.join(__dirname, "..", "public")));
 // en téléchargement ci-dessous.
 app.use("/site", express.static(path.join(__dirname, "..", "web")));
 
+// App SYRIX FLIX compilée en Flutter Web (générée par le workflow GitHub
+// Actions .github/workflows/flutter-web.yml, qui committe le build dans
+// web/flutter-app/ à chaque changement de mobile/lib/**). C'est elle qui gère
+// tout le flux Login → Signup → Accueil → Profil → Catalogue, en Dart/Flutter
+// compilé — pas en HTML statique.
+app.use("/app", express.static(path.join(__dirname, "..", "web", "flutter-app")));
+
 // Téléchargement de l'APK (déposez syrix-flix.apk dans /downloads à la racine
 // du projet ; c'est vers ce chemin que pointe assets/js/apk-banner.js).
 app.use("/downloads", express.static(path.join(__dirname, "..", "downloads")));
 
+// La racine du site redirige directement vers l'app Flutter Web compilée
+// (Login → Signup → Accueil → ... y sont gérés côté Flutter). Le JSON
+// d'info API reste disponible sur /api pour les intégrateurs / la doc.
 app.get("/", (req, res) => {
+  res.redirect("/app/");
+});
+
+app.get("/api", (req, res) => {
   res.json({
     success: true,
     data: {
       name: "SYRIX FLIX API",
       docs: "/docs",
-      site: "/site/player-demo.html",
+      site: "/app/",
       version: "1.0.0",
     },
   });

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>SYRIX FLIX — Profil</title>
+<link rel="stylesheet" href="assets/css/site.css" />
+<link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body class="sf-app">
+  <div class="sf-topbar">
+    <button class="sf-topbar__back" onclick="window.location.href='accueil.html'">←</button>
+    <h1 class="sf-topbar__title">Profil</h1>
+  </div>
+
+  <div class="sf-profile-head">
+    <div class="sf-avatar">👤</div>
+    <h3 id="pUsername">—</h3>
+    <p id="pEmail">—</p>
+  </div>
+
+  <div class="sf-badges">
+    <span class="sf-badge">❤ Favoris (<span id="pFavCount">0</span>)</span>
+    <span class="sf-badge">⬇ Téléchargements (<span id="pDlCount">0</span>)</span>
+  </div>
+
+  <div class="sf-profile-body">
+    <h4>Informations</h4>
+    <div class="sf-info-row"><span>Membre depuis</span><span id="pCreatedAt">—</span></div>
+    <div class="sf-info-row"><span>Thème</span><span id="pTheme">dark</span></div>
+
+    <div style="height:24px"></div>
+    <h4>Clé API Développeur</h4>
+    <div class="sf-card" id="apiKeyCard">
+      <p class="sf-hint">Chargement…</p>
+    </div>
+  </div>
+
+  <script src="assets/js/app-common.js"></script>
+  <script>
+    SyrixAuth.requireAuth();
+
+    let generatedKey = null;
+
+    function renderApiKeyCard(profile) {
+      const card = document.getElementById("apiKeyCard");
+      if (!profile.hasApiKey) {
+        card.innerHTML = `
+          <p class="sf-hint">Aucune clé pour l'instant. Générez-en une si vous êtes développeur —
+          elle se verrouille sur le domaine de votre site (auto-détecté au premier appel, ou renseigné ci-dessous).</p>
+          <div class="sf-field" style="margin-bottom:12px;">
+            <label>Domaine autorisé (optionnel)</label>
+            <input type="text" id="apiDomain" placeholder="ex: movie.votresite.com" />
+          </div>
+          <button class="sf-btn-block" id="genKeyBtn">GÉNÉRER UNE CLÉ API</button>
+        `;
+        document.getElementById("genKeyBtn").addEventListener("click", async () => {
+          const btn = document.getElementById("genKeyBtn");
+          btn.disabled = true;
+          btn.textContent = "GÉNÉRATION...";
+          const domain = document.getElementById("apiDomain").value.trim();
+          const res = await SyrixAuth.api("/profile/api-key", {
+            method: "POST",
+            body: JSON.stringify(domain ? { domain } : {}),
+          });
+          if (res.success) {
+            generatedKey = res.data.apiKey;
+            await load();
+          } else {
+            alert(res.error?.message || "Échec de la génération.");
+            btn.disabled = false;
+            btn.textContent = "GÉNÉRER UNE CLÉ API";
+          }
+        });
+      } else {
+        card.innerHTML = `
+          <div class="sf-keyrow">
+            <code id="apiKeyValue">${generatedKey ? generatedKey : "SYRIX_API_KEY_•••••••••••••••••••••• (masquée)"}</code>
+            ${generatedKey ? `<button id="copyKeyBtn" title="Copier">⧉</button>` : ""}
+          </div>
+          <p class="sf-hint" style="margin-top:8px;">
+            ${profile.apiKeyDomain ? "Verrouillée sur : " + profile.apiKeyDomain : "Pas encore verrouillée — sera fixée au premier appel entrant."}
+          </p>
+          <button class="sf-btn-block sf-btn-block--outline" id="revokeKeyBtn">RÉVOQUER LA CLÉ</button>
+        `;
+        if (generatedKey) {
+          document.getElementById("copyKeyBtn").addEventListener("click", () => {
+            navigator.clipboard.writeText(generatedKey);
+            alert("Clé copiée.");
+          });
+        }
+        document.getElementById("revokeKeyBtn").addEventListener("click", async () => {
+          const res = await SyrixAuth.api("/profile/api-key", { method: "DELETE" });
+          if (res.success) {
+            generatedKey = null;
+            await load();
+          }
+        });
+      }
+    }
+
+    async function load() {
+      const res = await SyrixAuth.api("/profile");
+      if (!res.success) return;
+      const p = res.data;
+      SyrixAuth.setSession(SyrixAuth.getToken(), p);
+      document.getElementById("pUsername").textContent = p.username;
+      document.getElementById("pEmail").textContent = p.email;
+      document.getElementById("pFavCount").textContent = p.favoritesCount || 0;
+      document.getElementById("pDlCount").textContent = p.downloadsCount || 0;
+      document.getElementById("pCreatedAt").textContent = p.createdAt ? p.createdAt.substring(0, 10) : "—";
+      document.getElementById("pTheme").textContent = p.theme || "dark";
+      renderApiKeyCard(p);
+    }
+    load();
+  </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>SYRIX FLIX</title>
+<link rel="stylesheet" href="assets/css/site.css" />
+<link rel="stylesheet" href="assets/css/app.css" />
+</head>
+<body class="sf-app">
+  <div class="sf-intro">
+    <span class="sf-logo sf-logo--lg">
+      <span class="sf-logo__mark">S</span>
+      <span class="sf-logo__text"><span>SYRIX</span><span class="sf-flix">FLIX</span></span>
+    </span>
+    <p>Experience Unlimited Entertainment</p>
+  </div>
+
+  <script src="assets/js/app-common.js"></script>
+  <script>
+    setTimeout(() => {
+      window.location.href = SyrixAuth.getToken() ? "accueil.html" : "login.html";
+    }, 1800);
+  </script>
+</body>
+</html>
