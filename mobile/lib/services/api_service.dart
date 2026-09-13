@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// il gère le token de session et relaie vers /api/v1/*.
 class ApiService {
   // À remplacer par le domaine réel de votre backend en production.
-  static const String baseUrl = "https://api.votre-domaine.com/api/v1";
+  static const String baseUrl = "me-production-d7e6.up.railway.app/api/v1";
 
   static Future<String?> _token() async {
     final prefs = await SharedPreferences.getInstance();
