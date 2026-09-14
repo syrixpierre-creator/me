@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_theme.dart';
 import '../services/api_service.dart';
+import '../widgets/network_retry.dart';
 
 class ProfileScreen extends StatefulWidget {
   final bool embedded; // true quand affiché comme onglet de la bottom nav
@@ -16,6 +17,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _apiKey; // affichée seulement juste après génération (non renvoyée ensuite)
   bool _loading = true;
   bool _generating = false;
+  String? _loadError;
   final _domainCtrl = TextEditingController();
 
   @override
@@ -25,11 +27,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _load() async {
-    final res = await ApiService.getProfile();
     setState(() {
-      _profile = res['success'] == true ? res['data'] : null;
-      _loading = false;
+      _loading = true;
+      _loadError = null;
     });
+    try {
+      final res = await ApiService.getProfile();
+      setState(() {
+        _profile = res['success'] == true ? res['data'] : null;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loadError = 'Connexion internet indisponible';
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _generateKey() async {
@@ -65,7 +78,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final body = _loading
         ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
-        : _buildContent();
+        : (_loadError != null
+            ? NetworkRetryButton(message: _loadError!, onRetry: _load)
+            : _buildContent());
 
     if (widget.embedded) {
       return Container(color: AppColors.background, child: body);

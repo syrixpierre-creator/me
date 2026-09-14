@@ -1,8 +1,16 @@
+import 'dart:html' as html;
+import 'dart:ui_web' as ui_web;
+
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/media_model.dart';
 import '../services/api_service.dart';
-import 'player_screen.dart';
+import '../utils/player_policy.dart';
+
+/// Hauteur de la zone média en haut de la page (poster OU lecteur vidéo).
+/// Le lecteur prend exactement la place du poster : aucune valeur ne
+/// change entre les deux états.
+const double _kMediaHeight = 220;
 
 /// Convertit le type singulier de MediaItem ('movie'/'series'/'anime'/'drama')
 /// vers le segment de route pluriel attendu par l'API ('movies'/'series'/'anime'/'dramas').
@@ -28,10 +36,52 @@ class MediaDetailScreen extends StatefulWidget {
 class _MediaDetailScreenState extends State<MediaDetailScreen> {
   late Future<Map<String, dynamic>> _future;
 
+  // --- État du lecteur intégré ---------------------------------------
+  // Tant que _activeViewType est null, on affiche le poster. Dès qu'un
+  // serveur est choisi, on enregistre une iframe et on l'affiche à la
+  // place exacte du poster, sur la même page (pas de nouvel écran).
+  String? _activeViewType;
+  String? _activeServerName;
+  bool _isPaused = false;
+
+  bool get _isPlaying => _activeViewType != null;
+
   @override
   void initState() {
     super.initState();
     _future = ApiService.fetchDetail(_routeType(widget.item.type), widget.item.slug);
+  }
+
+  /// Enregistre une iframe pour le serveur choisi et bascule l'affichage
+  /// du poster vers le lecteur, sans quitter la page de détail.
+  void _playServer(String name, String link) {
+    final viewType = 'syrix-player-${DateTime.now().microsecondsSinceEpoch}';
+    final sandbox = playerSandbox(serverName: name, serverLink: link);
+
+    ui_web.platformViewRegistry.registerViewFactory(viewType, (int viewId) {
+      final iframe = html.IFrameElement()
+        ..src = link
+        ..style.border = 'none'
+        ..style.width = '100%'
+        ..style.height = '100%'
+        ..allowFullscreen = true
+        ..setAttribute('sandbox', sandbox)
+        ..setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
+      return iframe;
+    });
+
+    setState(() {
+      _activeViewType = viewType;
+      _activeServerName = name;
+      _isPaused = false;
+    });
+  }
+
+  /// Le bouton "Regarder" devient un bouton de contrôle une fois la
+  /// lecture démarrée : on ne relance pas de sélection de serveur, on
+  /// bascule juste son état visuel (Mettre en pause / Reprendre).
+  void _togglePauseLabel() {
+    setState(() => _isPaused = !_isPaused);
   }
 
   void _showServers(Map<String, dynamic> serversJson) {
@@ -76,16 +126,7 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
                       : null,
                   onTap: link.isEmpty ? null : () {
                     Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PlayerScreen(
-                          title: widget.item.title,
-                          serverName: name,
-                          serverLink: link,
-                        ),
-                      ),
-                    );
+                    _playServer(name, link);
                   },
                 );
               }),
@@ -167,92 +208,129 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
           final episodes = (data['episodes'] as List?)?.cast<Map>() ?? [];
           final isMovie = widget.item.type == 'movie';
 
-          return CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                backgroundColor: AppColors.background,
-                pinned: true,
-                expandedHeight: 260,
-                flexibleSpace: FlexibleSpaceBar(
-                  background: image.isNotEmpty
-                      ? Image.network(
-                          image,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: AppColors.surface,
-                            child: const Icon(Icons.movie_creation_outlined, color: AppColors.textSecondary, size: 48),
-                          ),
-                        )
-                      : Container(color: AppColors.surface),
+          // Zone média fixe en haut : poster tant qu'on n'a pas lancé la
+          // lecture, puis lecteur vidéo intégré exactement à sa place dès
+          // qu'un serveur est choisi — jamais de nouvel écran, jamais de
+          // bascule forcée en plein écran paysage.
+          final mediaArea = SizedBox(
+            height: _kMediaHeight,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (_isPlaying)
+                  HtmlElementView(viewType: _activeViewType!)
+                else if (image.isNotEmpty)
+                  Image.network(
+                    image,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: AppColors.surface,
+                      child: const Icon(Icons.movie_creation_outlined, color: AppColors.textSecondary, size: 48),
+                    ),
+                  )
+                else
+                  Container(color: AppColors.surface),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: SafeArea(
+                    bottom: false,
+                    child: Material(
+                      color: Colors.black45,
+                      shape: const CircleBorder(),
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
+              ],
+            ),
+          );
+
+          final metadataAndControls = Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(
+                  color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900,
+                )),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 12,
+                  children: [
+                    if (year.isNotEmpty) Text(year, style: const TextStyle(color: AppColors.textSecondary)),
+                    if (status.isNotEmpty) Text(status, style: const TextStyle(color: AppColors.textSecondary)),
+                    if (country != null && country.isNotEmpty)
+                      Text(country, style: const TextStyle(color: AppColors.textSecondary)),
+                  ],
+                ),
+                if (genres.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: genres.map((g) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Text(g, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                    )).toList(),
+                  ),
+                ],
+                if (synopsis.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(synopsis, style: const TextStyle(color: AppColors.textSecondary, height: 1.5)),
+                ],
+                const SizedBox(height: 20),
+                if (isMovie)
+                  ElevatedButton.icon(
+                    onPressed: _isPlaying ? _togglePauseLabel : () => _watchMovie(data),
+                    icon: Icon(_isPlaying && !_isPaused ? Icons.pause : Icons.play_arrow),
+                    label: Text(
+                      !_isPlaying
+                          ? 'Regarder'
+                          : (_isPaused ? 'Reprendre' : 'Mettre en pause'),
+                    ),
+                  ),
+                if (_isPlaying && _activeServerName != null) ...[
+                  const SizedBox(height: 8),
+                  Text('Serveur : $_activeServerName', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                ],
+              ],
+            ),
+          );
+
+          return Column(
+            children: [
+              mediaArea,
+              Expanded(
+                child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: const TextStyle(
-                        color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900,
-                      )),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 12,
-                        children: [
-                          if (year.isNotEmpty) Text(year, style: const TextStyle(color: AppColors.textSecondary)),
-                          if (status.isNotEmpty) Text(status, style: const TextStyle(color: AppColors.textSecondary)),
-                          if (country != null && country.isNotEmpty)
-                            Text(country, style: const TextStyle(color: AppColors.textSecondary)),
-                        ],
-                      ),
-                      if (genres.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: genres.map((g) => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.border),
-                            ),
-                            child: Text(g, style: const TextStyle(color: Colors.white, fontSize: 12)),
-                          )).toList(),
-                        ),
-                      ],
-                      if (synopsis.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        Text(synopsis, style: const TextStyle(color: AppColors.textSecondary, height: 1.5)),
-                      ],
-                      const SizedBox(height: 20),
-                      if (isMovie)
-                        ElevatedButton.icon(
-                          onPressed: () => _watchMovie(data),
-                          icon: const Icon(Icons.play_arrow),
-                          label: const Text('Regarder'),
-                        ),
+                      metadataAndControls,
+                      if (!isMovie)
+                        ...episodes.map((ep) {
+                          final num = ep['number']?.toString() ?? '${episodes.indexOf(ep) + 1}';
+                          final epTitle = ep['title']?.toString() ?? 'Épisode $num';
+                          return ListTile(
+                            leading: const Icon(Icons.play_circle_outline, color: AppColors.accent),
+                            title: Text(epTitle, style: const TextStyle(color: Colors.white)),
+                            onTap: () => _watchEpisode(ep),
+                          );
+                        }),
+                      const SizedBox(height: 32),
                     ],
                   ),
                 ),
               ),
-              if (!isMovie)
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) {
-                      final ep = episodes[i];
-                      final num = ep['number']?.toString() ?? '${i + 1}';
-                      final epTitle = ep['title']?.toString() ?? 'Épisode $num';
-                      return ListTile(
-                        leading: const Icon(Icons.play_circle_outline, color: AppColors.accent),
-                        title: Text(epTitle, style: const TextStyle(color: Colors.white)),
-                        onTap: () => _watchEpisode(ep),
-                      );
-                    },
-                    childCount: episodes.length,
-                  ),
-                ),
-              const SliverToBoxAdapter(child: SizedBox(height: 32)),
             ],
           );
         },

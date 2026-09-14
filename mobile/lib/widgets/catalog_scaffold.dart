@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import '../models/media_model.dart';
 import '../services/api_service.dart';
 import 'media_card.dart';
+import 'network_retry.dart';
 import '../screens/media_detail_screen.dart';
 
 /// Squelette commun aux écrans Anime / Movie / Série :
@@ -140,20 +141,9 @@ class _CatalogScaffoldState extends State<CatalogScaffold> {
                   if (snapshot.hasError) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 40),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            const Icon(Icons.wifi_off, color: AppColors.textSecondary, size: 32),
-                            const SizedBox(height: 8),
-                            Text('${snapshot.error}'.replaceFirst('Exception: ', ''),
-                                style: const TextStyle(color: AppColors.textSecondary), textAlign: TextAlign.center),
-                            const SizedBox(height: 12),
-                            TextButton(
-                              onPressed: () => setState(() => _future = _load()),
-                              child: const Text('Réessayer'),
-                            ),
-                          ],
-                        ),
+                      child: NetworkRetryButton(
+                        message: '${snapshot.error}'.replaceFirst('Exception: ', ''),
+                        onRetry: () => setState(() => _future = _load()),
                       ),
                     );
                   }

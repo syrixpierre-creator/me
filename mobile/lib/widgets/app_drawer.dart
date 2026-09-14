@@ -5,10 +5,16 @@ import '../widgets/syrix_logo.dart';
 import '../services/api_service.dart';
 import '../screens/login_screen.dart';
 import '../screens/profile_screen.dart';
+import '../screens/simple_info_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   final String username;
-  const AppDrawer({super.key, this.username = 'Utilisateur'});
+  /// Permet de basculer l'onglet actif de la bottom nav du HomeScreen
+  /// (Accueil / Téléchargements) sans quitter l'écran. Optionnel : si le
+  /// drawer est utilisé ailleurs sans callback, on retombe sur une simple
+  /// fermeture du menu.
+  final ValueChanged<int>? onNavigate;
+  const AppDrawer({super.key, this.username = 'Utilisateur', this.onNavigate});
 
   @override
   Widget build(BuildContext context) {
@@ -58,12 +64,30 @@ class AppDrawer extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  _tile(context, Icons.home_outlined, 'Accueil'),
-                  _tile(context, Icons.favorite_border, 'Favoris'),
-                  _tile(context, Icons.download_outlined, 'Téléchargements'),
-                  _tile(context, Icons.history, 'Historique'),
-                  _tile(context, Icons.settings_outlined, 'Paramètres'),
-                  _tile(context, Icons.help_outline, 'Aide et Support'),
+                  _tile(context, Icons.home_outlined, 'Accueil', onTap: () {
+                    Navigator.pop(context);
+                    onNavigate?.call(0);
+                  }),
+                  _tile(context, Icons.favorite_border, 'Favoris', onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const FavoritesScreen()));
+                  }),
+                  _tile(context, Icons.download_outlined, 'Téléchargements', onTap: () {
+                    Navigator.pop(context);
+                    onNavigate?.call(2);
+                  }),
+                  _tile(context, Icons.history, 'Historique', onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const HistoryScreen()));
+                  }),
+                  _tile(context, Icons.settings_outlined, 'Paramètres', onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                  }),
+                  _tile(context, Icons.help_outline, 'Aide et Support', onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpScreen()));
+                  }),
                   const Spacer(),
                   const Divider(color: AppColors.border),
                   Padding(
@@ -107,11 +131,11 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  Widget _tile(BuildContext context, IconData icon, String label) {
+  Widget _tile(BuildContext context, IconData icon, String label, {VoidCallback? onTap}) {
     return ListTile(
       leading: Icon(icon, color: Colors.white70),
       title: Text(label, style: const TextStyle(color: Colors.white)),
-      onTap: () => Navigator.pop(context),
+      onTap: onTap ?? () => Navigator.pop(context),
     );
   }
 }

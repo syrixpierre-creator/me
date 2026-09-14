@@ -6,6 +6,7 @@ import '../widgets/syrix_logo.dart';
 import 'media_detail_screen.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/media_card.dart';
+import '../widgets/network_retry.dart';
 import 'anime_screen.dart';
 import 'movie_screen.dart';
 import 'series_screen.dart';
@@ -31,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      drawer: const AppDrawer(),
+      drawer: AppDrawer(onNavigate: (i) => setState(() => _navIndex = i)),
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
@@ -116,13 +117,19 @@ class _CarouselSectionState extends State<_CarouselSection> {
   @override
   void initState() {
     super.initState();
-    if (widget.apiType != null) {
-      _future = ApiService.fetchList(widget.apiType!).then((json) {
-        if (json['success'] != true) return <MediaItem>[];
-        final List data = json['data'] as List? ?? [];
-        return data.map((e) => MediaItem.fromJson(e as Map<String, dynamic>)).toList();
-      });
-    }
+    _load();
+  }
+
+  void _load() {
+    if (widget.apiType == null) return;
+    _future = ApiService.fetchList(widget.apiType!).then((json) {
+      if (json['success'] != true) {
+        final message = (json['error'] is Map) ? json['error']['message'] : null;
+        throw Exception(message ?? 'Erreur de chargement.');
+      }
+      final List data = json['data'] as List? ?? [];
+      return data.map((e) => MediaItem.fromJson(e as Map<String, dynamic>)).toList();
+    });
   }
 
   @override
@@ -155,6 +162,12 @@ class _CarouselSectionState extends State<_CarouselSection> {
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+                    }
+                    if (snapshot.hasError) {
+                      return NetworkRetryButton(
+                        message: '${snapshot.error}'.replaceFirst('Exception: ', ''),
+                        onRetry: () => setState(_load),
+                      );
                     }
                     final items = snapshot.data ?? [];
                     if (items.isEmpty) {
