@@ -13,6 +13,14 @@ const catalogRoutes = require("./routes/catalog.routes");
 
 const app = express();
 
+// Railway (comme tout hébergeur derrière un reverse proxy) transmet le vrai
+// IP client via l'en-tête X-Forwarded-For. Sans "trust proxy", Express refuse
+// de s'y fier — ce qui faisait planter express-rate-limit à chaque requête
+// (ValidationError: ERR_ERL_UNEXPECTED_X_FORWARDED_FOR, visible dans les logs
+// de déploiement). "1" = on fait confiance au premier proxy en amont (celui
+// de Railway), pas à un en-tête falsifiable par n'importe qui d'autre.
+app.set("trust proxy", 1);
+
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors()); // ouvert : la restriction réelle se fait par clé API + domaine, pas par CORS
 app.use(express.json({ limit: "2mb" }));
@@ -48,11 +56,19 @@ app.use("/app", express.static(path.join(__dirname, "..", "web", "flutter-app"))
 // du projet ; c'est vers ce chemin que pointe assets/js/apk-banner.js).
 app.use("/downloads", express.static(path.join(__dirname, "..", "downloads")));
 
-// La racine du site redirige directement vers l'app Flutter Web compilée
-// (Login → Signup → Accueil → ... y sont gérés côté Flutter). Le JSON
-// d'info API reste disponible sur /api pour les intégrateurs / la doc.
+// La racine du site redirige vers le site web statique (web/intro.html →
+// login/accueil selon la session), servi sur /site. C'est CE frontend qui
+// fonctionne immédiatement avec un simple déploiement (zip ou repo) : il ne
+// nécessite aucune étape de build.
+//
+// /app/ (app Flutter Web compilée) reste disponible séparément, mais n'est
+// PAS la racine par défaut : ce dossier n'existe que si le workflow GitHub
+// Actions .github/workflows/flutter-web.yml a tourné (push sur un repo
+// GitHub connecté à Railway) et a committé web/flutter-app/. Avec un simple
+// zip déployé directement, ce dossier n'existe jamais → /app/ (et donc /,
+// avant ce correctif) renvoyait une erreur 404 "Route inexistante".
 app.get("/", (req, res) => {
-  res.redirect("/app/");
+  res.redirect("/site/intro.html");
 });
 
 app.get("/api", (req, res) => {
@@ -61,7 +77,8 @@ app.get("/api", (req, res) => {
     data: {
       name: "SYRIX FLIX API",
       docs: "/docs",
-      site: "/app/",
+      site: "/site/intro.html",
+      app: "/app/ (app Flutter Web — nécessite le pipeline GitHub Actions)",
       version: "1.0.0",
     },
   });
