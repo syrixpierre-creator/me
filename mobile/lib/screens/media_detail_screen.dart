@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 import '../models/media_model.dart';
 import '../services/api_service.dart';
+import 'player_screen.dart';
 
 /// Convertit le type singulier de MediaItem ('movie'/'series'/'anime'/'drama')
 /// vers le segment de route pluriel attendu par l'API ('movies'/'series'/'anime'/'dramas').
@@ -32,12 +32,6 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
   void initState() {
     super.initState();
     _future = ApiService.fetchDetail(_routeType(widget.item.type), widget.item.slug);
-  }
-
-  Future<void> _openLink(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri == null) return;
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   void _showServers(Map<String, dynamic> serversJson) {
@@ -82,7 +76,16 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
                       : null,
                   onTap: link.isEmpty ? null : () {
                     Navigator.pop(context);
-                    _openLink(link);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PlayerScreen(
+                          title: widget.item.title,
+                          serverName: name,
+                          serverLink: link,
+                        ),
+                      ),
+                    );
                   },
                 );
               }),
