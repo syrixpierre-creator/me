@@ -30,10 +30,12 @@
       <div class="sf-carousel" id="carousel-continue"></div>
     </div>
 
-    <div class="sf-section">
+    <div class="sf-section" id="section-trending">
       <h2>Tendances actuelles</h2>
       <div class="sf-carousel" id="carousel-trending"></div>
     </div>
+
+    <div id="extraRows"></div>
 
     <div class="sf-section">
       <div class="sf-chips">
@@ -84,12 +86,90 @@
     SyrixAuth.requireAuth();
     SyrixDrawer.mount("#sfBurger");
 
-    // Carousel "Tendances actuelles" (données de démonstration en attendant
-    // le branchement au vrai catalogue — voir note ci-dessous).
-    const trendingEl = document.getElementById("carousel-trending");
-    for (let i = 1; i <= 6; i++) {
-      trendingEl.insertAdjacentHTML("beforeend", sfMediaCard("Titre " + i, null));
+    /* --- Catalogue réel : Tendances + lignes par genre/type ---
+       Aucune de ces sections n'affiche jamais de titre inventé : si le
+       catalogue source ne renvoie rien pour un genre donné, la ligne
+       correspondante est simplement masquée (pas de contenu factice). */
+    async function fetchCatalog(type, params) {
+      const qs = new URLSearchParams(params).toString();
+      const res = await SyrixAuth.api("/" + type + (qs ? "?" + qs : ""));
+      return res.success ? (res.data || []) : [];
     }
+
+    function dedupe(items) {
+      const seen = new Set();
+      const out = [];
+      items.forEach((item) => {
+        const key = (item.type || "") + ":" + (item.slug || item.title);
+        if (!item || seen.has(key)) return;
+        seen.add(key);
+        out.push(item);
+      });
+      return out;
+    }
+
+    async function loadTrending() {
+      const trendingEl = document.getElementById("carousel-trending");
+      const lists = await Promise.all([
+        fetchCatalog("movies", {}),
+        fetchCatalog("series", {}),
+        fetchCatalog("anime", {}),
+        fetchCatalog("dramas", {}),
+      ]);
+      const items = dedupe(lists.flat()).slice(0, 12);
+      if (!items.length) {
+        document.getElementById("section-trending").style.display = "none";
+        return;
+      }
+      trendingEl.innerHTML = "";
+      items.forEach((item) => {
+        trendingEl.insertAdjacentHTML("beforeend", sfMediaCard(item.title || "—", null, item.image));
+      });
+    }
+
+    // Lignes tentées via les filtres réellement supportés par l'API
+    // (genre / country / type). Ce sont des essais avec les libellés les
+    // plus probables : si le catalogue source utilise d'autres libellés,
+    // la ligne restera simplement masquée (jamais de contenu inventé).
+    const EXTRA_ROWS = [
+      { title: "Anime", sources: [{ type: "anime", params: {} }] },
+      { title: "K-Dramas", sources: [{ type: "dramas", params: {} }] },
+      { title: "Drames", sources: [{ type: "movies", params: { genre: "Drame" } }, { type: "series", params: { genre: "Drame" } }] },
+      { title: "Comédies", sources: [{ type: "movies", params: { genre: "Comédie" } }, { type: "series", params: { genre: "Comédie" } }] },
+      { title: "Action & Aventure", sources: [{ type: "movies", params: { genre: "Action" } }, { type: "series", params: { genre: "Action" } }] },
+      { title: "Horreur & Thriller", sources: [{ type: "movies", params: { genre: "Horreur" } }, { type: "movies", params: { genre: "Thriller" } }] },
+      { title: "Romance", sources: [{ type: "movies", params: { genre: "Romance" } }, { type: "series", params: { genre: "Romance" } }] },
+      { title: "Fantastique & Science-fiction", sources: [{ type: "movies", params: { genre: "Fantastique" } }, { type: "movies", params: { genre: "Science-Fiction" } }] },
+      { title: "Films internationaux", sources: [{ type: "movies", params: { genre: "International" } }] },
+      { title: "J-Dramas", sources: [{ type: "dramas", params: { genre: "Japonais" } }, { type: "dramas", params: { country: "Japon" } }] },
+      { title: "C-Dramas", sources: [{ type: "dramas", params: { genre: "Chinois" } }, { type: "dramas", params: { country: "Chine" } }] },
+      { title: "Thai Dramas", sources: [{ type: "dramas", params: { genre: "Thaïlandais" } }, { type: "dramas", params: { country: "Thaïlande" } }] },
+    ];
+
+    async function loadExtraRows() {
+      const container = document.getElementById("extraRows");
+      for (const row of EXTRA_ROWS) {
+        const lists = await Promise.all(row.sources.map((s) => fetchCatalog(s.type, s.params)));
+        const items = dedupe(lists.flat()).slice(0, 12);
+        if (!items.length) continue;
+
+        const section = document.createElement("div");
+        section.className = "sf-section";
+        const h2 = document.createElement("h2");
+        h2.textContent = row.title;
+        const carousel = document.createElement("div");
+        carousel.className = "sf-carousel";
+        items.forEach((item) => {
+          carousel.insertAdjacentHTML("beforeend", sfMediaCard(item.title || "—", null, item.image));
+        });
+        section.appendChild(h2);
+        section.appendChild(carousel);
+        container.appendChild(section);
+      }
+    }
+
+    loadTrending();
+    loadExtraRows();
 
     // "Continuer la lecture" reste caché tant qu'il n'y a pas de vrai
     // historique de lecture (pas encore de suivi de progression côté
