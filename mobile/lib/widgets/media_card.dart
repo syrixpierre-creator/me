@@ -5,12 +5,15 @@ class MediaCard extends StatelessWidget {
   final String title;
   final String? imageUrl;
   final double? progress; // 0.0 - 1.0, null = pas de progression affichée
+  final VoidCallback? onTap;
 
-  const MediaCard({super.key, required this.title, this.imageUrl, this.progress});
+  const MediaCard({super.key, required this.title, this.imageUrl, this.progress, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
       width: 110,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -44,6 +47,7 @@ class MediaCard extends StatelessWidget {
               style: const TextStyle(color: Colors.white, fontSize: 12)),
         ],
       ),
+    ),
     );
   }
 }

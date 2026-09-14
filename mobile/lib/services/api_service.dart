@@ -92,6 +92,27 @@ class ApiService {
     return jsonDecode(res.body);
   }
 
+  /// Fiche détaillée. `type` = 'movies' | 'series' | 'anime' | 'dramas'.
+  static Future<Map<String, dynamic>> fetchDetail(String type, String slug) async {
+    final res = await http.get(Uri.parse('$baseUrl/$type/$slug'), headers: await _headers());
+    return jsonDecode(res.body);
+  }
+
+  /// Serveurs de streaming pour un film ou un épisode de série
+  /// (identifiant numérique venant de `first_episode_id` / `episode_id`).
+  static Future<Map<String, dynamic>> fetchEpisodeServers(String episodeId) async {
+    final res = await http.get(Uri.parse('$baseUrl/episodes/$episodeId/servers'), headers: await _headers());
+    return jsonDecode(res.body);
+  }
+
+  /// Serveurs de streaming pour un épisode d'animé ou de K-Drama
+  /// (identifiant "slug", passé en paramètre `episode`).
+  static Future<Map<String, dynamic>> fetchTypeServers(String type, String slug, String episode) async {
+    final uri = Uri.parse('$baseUrl/$type/$slug/servers').replace(queryParameters: {'episode': episode});
+    final res = await http.get(uri, headers: await _headers());
+    return jsonDecode(res.body);
+  }
+
   static Future<Map<String, dynamic>> search(String query) async {
     final uri = Uri.parse('$baseUrl/search').replace(queryParameters: {'q': query});
     final res = await http.get(uri, headers: await _headers());

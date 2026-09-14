@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import '../models/media_model.dart';
 import '../services/api_service.dart';
 import 'media_card.dart';
+import '../screens/media_detail_screen.dart';
 
 /// Squelette commun aux écrans Anime / Movie / Série :
 /// bannière vedette, onglets de tri, pilules de genre, grille de cartes —
@@ -176,6 +177,10 @@ class _CatalogScaffoldState extends State<CatalogScaffold> {
                     itemBuilder: (context, i) => MediaCard(
                       title: items[i].title,
                       imageUrl: items[i].image.isNotEmpty ? items[i].image : null,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => MediaDetailScreen(item: items[i])),
+                      ),
                     ),
                   );
                 },

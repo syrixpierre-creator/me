@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import '../models/media_model.dart';
 import '../services/api_service.dart';
 import '../widgets/syrix_logo.dart';
+import 'media_detail_screen.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/media_card.dart';
 import 'anime_screen.dart';
@@ -169,6 +170,10 @@ class _CarouselSectionState extends State<_CarouselSection> {
                       itemBuilder: (context, i) => MediaCard(
                         title: items[i].title,
                         imageUrl: items[i].image.isNotEmpty ? items[i].image : null,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => MediaDetailScreen(item: items[i])),
+                        ),
                       ),
                     );
                   },
