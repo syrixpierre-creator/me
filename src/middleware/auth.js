@@ -18,7 +18,11 @@ async function requireAuth(req, res, next) {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(payload.sub);
+    // .select("+apiKey") : apiKey a `select: false` dans le schéma, sans ce
+    // +apiKey req.user.apiKey resterait toujours undefined ici, ce qui
+    // cassait hasApiKey (toSafeJSON) et la détection de clé existante lors
+    // de la régénération dans profile.routes.js.
+    const user = await User.findById(payload.sub).select("+apiKey");
     if (!user) {
       return res.status(401).json({
         success: false,

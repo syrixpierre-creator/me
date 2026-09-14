@@ -89,6 +89,7 @@ const SyrixDrawer = (() => {
           <button class="sf-drawer__tile" data-close>🕒 Historique</button>
           <button class="sf-drawer__tile" data-close>⚙ Paramètres</button>
           <button class="sf-drawer__tile" data-close>❓ Aide et Support</button>
+          <button class="sf-drawer__tile" id="sfDrawerApiDocs" data-close>🔌 Doc API (clé &amp; endpoints)</button>
         </div>
         <div class="sf-drawer__social">
           <span>📘</span><span>✉</span><span>📷</span>
@@ -117,6 +118,9 @@ const SyrixDrawer = (() => {
     overlay.addEventListener("click", close);
     drawer.querySelectorAll("[data-close]").forEach((el) => el.addEventListener("click", close));
     document.getElementById("sfDrawerLogout").addEventListener("click", SyrixAuth.logout);
+    document.getElementById("sfDrawerApiDocs").addEventListener("click", () => {
+      window.location.href = "/docs/docs.html";
+    });
 
     const cached = SyrixAuth.getCachedUser();
     if (cached && cached.username) {
@@ -134,14 +138,17 @@ const SyrixDrawer = (() => {
 })();
 
 /* --- Génère le HTML d'une carte média --- */
-function sfMediaCard(title, progress) {
+function sfMediaCard(title, progress, image) {
   const progressHtml =
     progress === undefined || progress === null
       ? ""
       : `<div class="sf-progress"><i style="width:${Math.round(progress * 100)}%"></i></div>`;
+  const thumbHtml = image
+    ? `<img src="${image}" alt="" loading="lazy" />`
+    : "🎬";
   return `
     <div class="sf-media-card">
-      <div class="sf-media-card__thumb">🎬</div>
+      <div class="sf-media-card__thumb">${thumbHtml}</div>
       ${progressHtml}
       <div class="sf-media-card__title">${title}</div>
     </div>

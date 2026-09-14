@@ -142,7 +142,7 @@
       <p><strong>a) Token de session (app mobile)</strong> — délivré par <code class="inline">POST /auth/login</code>, envoyé en en-tête :</p>
       <pre><code>Authorization: Bearer &lt;token&gt;</code></pre>
       <p><strong>b) Clé API développeur (sites/apps tierces)</strong> — générée depuis l'écran Profil, envoyée en en-tête :</p>
-      <pre><code>X-API-Key: SYRIX_API_KEY_xxxxxxxxxxxxxxxx</code></pre>
+      <pre><code>X-API-Key: syrix~xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code></pre>
     </div>
   </section>
 
@@ -151,7 +151,7 @@
     <p>Contrairement à un système de liste blanche par IP, la clé API SYRIX FLIX est <strong>verrouillée sur un nom de domaine</strong> — celui de votre site (ex: <code class="inline">movie.votresite.com</code>), et non sur l'IP du VPS qui héberge cette API.</p>
 
     <div class="step"><div class="num">1</div><div>
-      <strong>Générez votre clé</strong> depuis l'écran Profil de l'app (bouton "Générer une clé API"). Elle est vide par défaut et n'est créée qu'à votre demande.
+      <strong>Générez votre clé</strong> depuis l'écran Profil de l'app (bouton "Générer une clé API"), en lui donnant un nom optionnel (ex: "Site movie-syrix") pour la reconnaître. Elle est vide par défaut et n'est créée qu'à votre demande.
     </div></div>
     <div class="step"><div class="num">2</div><div>
       <strong>Auto-détection du domaine</strong> : si vous ne renseignez pas de domaine à la création, la clé se verrouille automatiquement sur le domaine détecté (en-tête <code class="inline">Origin</code>/<code class="inline">Referer</code>) lors de votre tout premier appel réussi.
@@ -159,9 +159,12 @@
     <div class="step"><div class="num">3</div><div>
       <strong>Ou déclarez-le manuellement</strong>, par exemple via une variable d'environnement dans votre propre site :
       <pre><code># .env de votre site "movie syrix"
-SYRIX_API_KEY=SYRIX_API_KEY_xxxxxxxxxxxxxxxx
+SYRIX_API_KEY=syrix~xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 SYRIX_ALLOWED_DOMAIN=movie.votresite.com</code></pre>
       puis en confirmant ce domaine via <code class="inline">PATCH /profile/api-key/domain</code>.
+    </div></div>
+    <div class="step"><div class="num">4</div><div>
+      <strong>Régénérer la clé</strong> : renvoyer <code class="inline">POST /profile/api-key</code> à tout moment (même si une clé existe déjà) invalide l'ancienne clé et en crée une nouvelle. Si le champ <code class="inline">domain</code> est omis lors d'une régénération, le verrouillage de domaine existant est conservé.
     </div></div>
 
     <div class="warn">
@@ -176,7 +179,7 @@ SYRIX_ALLOWED_DOMAIN=movie.votresite.com</code></pre>
       <tr><td>POST</td><td>/auth/signup</td><td>—</td><td>Créer un compte</td></tr>
       <tr><td>POST</td><td>/auth/login</td><td>—</td><td>Connexion, retourne le token</td></tr>
       <tr><td>GET</td><td>/profile</td><td>Token</td><td>Profil courant</td></tr>
-      <tr><td>POST</td><td>/profile/api-key</td><td>Token</td><td>Générer la clé API</td></tr>
+      <tr><td>POST</td><td>/profile/api-key</td><td>Token</td><td>Générer ou régénérer la clé API (accepte <code class="inline">name</code>, <code class="inline">domain</code>)</td></tr>
       <tr><td>PATCH</td><td>/profile/api-key/domain</td><td>Token</td><td>Définir/changer le domaine autorisé</td></tr>
       <tr><td>DELETE</td><td>/profile/api-key</td><td>Token</td><td>Révoquer la clé API</td></tr>
       <tr><td>GET</td><td>/movies?page=&genre=</td><td>Token ou X-API-Key</td><td>Liste des films</td></tr>

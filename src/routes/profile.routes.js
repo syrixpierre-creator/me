@@ -23,25 +23,23 @@ router.patch("/", async (req, res) => {
 });
 
 // POST /api/v1/profile/api-key
-// Génère manuellement une clé API. `domain` est optionnel : si fourni, il
-// est enregistré tout de suite (ex: "movie.syrix.app", repris du .env du
-// site du dev) ; sinon la clé sera auto-verrouillée sur le domaine du
-// premier appel réel (voir middleware/apiKeyAuth.js).
+// Génère une clé API, ou la RÉGÉNÈRE si l'utilisateur en a déjà une
+// (l'ancienne clé est immédiatement invalidée). `name` et `domain` sont
+// optionnels :
+// - `name` : libellé libre pour reconnaître la clé (ex: "Site movie-syrix").
+// - `domain` : si fourni, il est enregistré/écrasé tout de suite (ex:
+//   "movie.syrix.app", repris du .env du site du dev) ; sinon, sur une
+//   régénération, le verrouillage de domaine existant est conservé, et sur
+//   une première génération la clé s'auto-verrouillera sur le domaine du
+//   premier appel réel (voir middleware/apiKeyAuth.js).
 router.post("/api-key", async (req, res) => {
-  if (req.user.apiKey) {
-    return res.status(409).json({
-      success: false,
-      error: {
-        code: "api_key_exists",
-        message: "Une clé API existe déjà. Révoquez-la avant d'en générer une nouvelle.",
-      },
-    });
-  }
-
-  const { domain } = req.body || {};
+  const { name, domain } = req.body || {};
+  const wasRegenerated = !!req.user.apiKey;
 
   req.user.apiKey = generateApiKey();
-  req.user.apiKeyDomain = domain ? normalizeDomain(domain) : null;
+  if (name !== undefined) req.user.apiKeyName = name ? String(name).trim().slice(0, 60) : null;
+  if (domain) req.user.apiKeyDomain = normalizeDomain(domain);
+  else if (!wasRegenerated) req.user.apiKeyDomain = null;
   req.user.apiKeyCreatedAt = new Date();
   await req.user.save();
 
@@ -49,7 +47,9 @@ router.post("/api-key", async (req, res) => {
     success: true,
     data: {
       apiKey: req.user.apiKey,
+      apiKeyName: req.user.apiKeyName,
       apiKeyDomain: req.user.apiKeyDomain,
+      regenerated: wasRegenerated,
       note: req.user.apiKeyDomain
         ? `Clé verrouillée sur le domaine "${req.user.apiKeyDomain}".`
         : "Aucun domaine renseigné — la clé se verrouillera automatiquement sur le domaine du premier appel.",
@@ -82,6 +82,7 @@ router.patch("/api-key/domain", async (req, res) => {
 router.delete("/api-key", async (req, res) => {
   req.user.apiKey = null;
   req.user.apiKeyDomain = null;
+  req.user.apiKeyName = null;
   req.user.apiKeyCreatedAt = null;
   await req.user.save();
   res.json({ success: true, data: { message: "Clé API révoquée." } });

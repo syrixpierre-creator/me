@@ -18,9 +18,14 @@
 
   <!-- Onglet : Accueil -->
   <section class="sf-tabpanel sf-active" id="tab-accueil">
+    <div class="sf-searchbar" id="homeSearchBar">
+      <span class="sf-searchbar__icon">⌕</span>
+      <input type="text" id="homeSearchInput" placeholder="Rechercher un film, une série..." />
+    </div>
+
     <div class="sf-banner"><span>À l'affiche cette semaine</span></div>
 
-    <div class="sf-section">
+    <div class="sf-section" id="section-continue" style="display:none;">
       <h2>Continuer la lecture</h2>
       <div class="sf-carousel" id="carousel-continue"></div>
     </div>
@@ -41,7 +46,25 @@
 
   <!-- Onglet : Recherche -->
   <section class="sf-tabpanel" id="tab-recherche">
-    <p class="sf-placeholder">Recherche</p>
+    <div class="sf-searchbar" id="searchTabBar" style="margin-top:16px;">
+      <span class="sf-searchbar__icon">⌕</span>
+      <input type="text" id="searchInput" placeholder="Rechercher un film, une série..." />
+    </div>
+
+    <div class="sf-section" id="searchHistoryBlock" style="display:none;">
+      <div class="sf-search-history__head">
+        <h2>Recherches récentes</h2>
+        <button class="sf-search-history__clear" id="clearHistoryBtn">Effacer</button>
+      </div>
+      <div class="sf-search-history" id="searchHistoryList"></div>
+    </div>
+
+    <div class="sf-section" id="searchResultsBlock" style="display:none;">
+      <h2>Résultats</h2>
+      <div class="sf-grid" id="searchResultsGrid"></div>
+    </div>
+
+    <p class="sf-placeholder" id="searchEmptyState" style="display:none;"></p>
   </section>
 
   <!-- Onglet : Téléchargements -->
@@ -61,14 +84,19 @@
     SyrixAuth.requireAuth();
     SyrixDrawer.mount("#sfBurger");
 
-    // Carousels (mêmes données de démonstration que l'app mobile — à
-    // remplacer par un vrai appel API dès que le catalogue sera branché).
-    const continueEl = document.getElementById("carousel-continue");
+    // Carousel "Tendances actuelles" (données de démonstration en attendant
+    // le branchement au vrai catalogue — voir note ci-dessous).
     const trendingEl = document.getElementById("carousel-trending");
     for (let i = 1; i <= 6; i++) {
-      continueEl.insertAdjacentHTML("beforeend", sfMediaCard("Titre " + i, ((i - 1) % 4) / 4));
       trendingEl.insertAdjacentHTML("beforeend", sfMediaCard("Titre " + i, null));
     }
+
+    // "Continuer la lecture" reste caché tant qu'il n'y a pas de vrai
+    // historique de lecture (pas encore de suivi de progression côté
+    // backend) : on n'affiche plus jamais de cartes factices ici.
+    // TODO: dès qu'un endpoint GET /profile/watch-history existera,
+    // appeler l'API ici et n'afficher #section-continue que si la liste
+    // renvoyée n'est pas vide.
 
     // Navigation basse : bascule d'onglets, sauf "Profil" qui ouvre sa page dédiée.
     document.querySelectorAll(".sf-bottomnav button[data-tab]").forEach((btn) => {
@@ -82,6 +110,103 @@
     document.getElementById("navProfil").addEventListener("click", () => {
       window.location.href = "profil.html";
     });
+
+    /* --- Recherche : historique (localStorage) + vrai appel API --- */
+    const SEARCH_HISTORY_KEY = "sf_search_history";
+
+    function getSearchHistory() {
+      try {
+        return JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY) || "[]");
+      } catch {
+        return [];
+      }
+    }
+    function addToSearchHistory(q) {
+      q = q.trim();
+      if (!q) return;
+      const list = [q, ...getSearchHistory().filter((item) => item.toLowerCase() !== q.toLowerCase())].slice(0, 15);
+      localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(list));
+    }
+    function renderSearchHistory() {
+      const history = getSearchHistory();
+      const block = document.getElementById("searchHistoryBlock");
+      const list = document.getElementById("searchHistoryList");
+      if (!history.length) {
+        block.style.display = "none";
+        return;
+      }
+      block.style.display = "";
+      list.innerHTML = history
+        .map((q) => `<button class="sf-search-history__item" data-q="${q.replace(/"/g, "&quot;")}">🕒 ${q}</button>`)
+        .join("");
+      list.querySelectorAll("[data-q]").forEach((btn) => {
+        btn.addEventListener("click", () => runSearch(btn.dataset.q));
+      });
+    }
+    document.getElementById("clearHistoryBtn").addEventListener("click", () => {
+      localStorage.removeItem(SEARCH_HISTORY_KEY);
+      renderSearchHistory();
+    });
+
+    function showSearchTab() {
+      document.querySelectorAll(".sf-bottomnav button[data-tab]").forEach((b) => b.classList.remove("sf-active"));
+      document.querySelector('.sf-bottomnav button[data-tab="recherche"]').classList.add("sf-active");
+      document.querySelectorAll(".sf-tabpanel").forEach((p) => p.classList.remove("sf-active"));
+      document.getElementById("tab-recherche").classList.add("sf-active");
+    }
+
+    async function runSearch(query) {
+      query = query.trim();
+      if (!query) return;
+      document.getElementById("searchInput").value = query;
+      addToSearchHistory(query);
+      renderSearchHistory();
+
+      const historyBlock = document.getElementById("searchHistoryBlock");
+      const resultsBlock = document.getElementById("searchResultsBlock");
+      const resultsGrid = document.getElementById("searchResultsGrid");
+      const emptyState = document.getElementById("searchEmptyState");
+
+      historyBlock.style.display = "none";
+      emptyState.style.display = "none";
+      resultsBlock.style.display = "";
+      resultsGrid.innerHTML = `<p class="sf-placeholder">Recherche...</p>`;
+
+      const res = await SyrixAuth.api("/search?q=" + encodeURIComponent(query));
+      const items = res.success ? (res.data || []) : [];
+
+      if (!items.length) {
+        resultsBlock.style.display = "none";
+        emptyState.style.display = "";
+        emptyState.textContent = res.success
+          ? "Aucun résultat trouvé."
+          : (res.error?.message || "Aucun résultat trouvé.");
+        return;
+      }
+      resultsGrid.innerHTML = "";
+      items.forEach((item) => {
+        resultsGrid.insertAdjacentHTML("beforeend", sfMediaCard(item.title || "—", null, item.image));
+      });
+    }
+
+    const homeSearchInput = document.getElementById("homeSearchInput");
+    homeSearchInput.addEventListener("focus", () => {
+      showSearchTab();
+      document.getElementById("searchInput").focus();
+    });
+    homeSearchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && homeSearchInput.value.trim()) {
+        showSearchTab();
+        runSearch(homeSearchInput.value);
+      }
+    });
+
+    const searchInput = document.getElementById("searchInput");
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && searchInput.value.trim()) runSearch(searchInput.value);
+    });
+
+    renderSearchHistory();
   </script>
 </body>
 </html>

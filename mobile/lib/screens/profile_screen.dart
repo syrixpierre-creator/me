@@ -19,6 +19,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _generating = false;
   String? _loadError;
   final _domainCtrl = TextEditingController();
+  final _nameCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -46,8 +47,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _generateKey() async {
+    final hasKey = _profile?['hasApiKey'] == true;
+    if (hasKey) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: const Text('Régénérer la clé ?', style: TextStyle(color: Colors.white)),
+          content: const Text(
+            "Régénérer la clé invalide immédiatement l'ancienne.",
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Régénérer')),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
     setState(() => _generating = true);
     final res = await ApiService.generateApiKey(
+      name: _nameCtrl.text.trim().isEmpty ? null : _nameCtrl.text.trim(),
       domain: _domainCtrl.text.trim().isEmpty ? null : _domainCtrl.text.trim(),
     );
     setState(() => _generating = false);
@@ -96,6 +117,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final p = _profile ?? {};
     final hasKey = p['hasApiKey'] == true;
     final apiKeyDomain = p['apiKeyDomain'];
+    final apiKeyName = p['apiKeyName'];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -146,36 +168,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (!hasKey) ...[
+                if (!hasKey)
                   const Text(
                     "Aucune clé pour l'instant. Générez-en une si vous êtes développeur — "
                     "elle se verrouille sur le domaine de votre site (auto-détecté au premier "
                     "appel, ou renseigné ci-dessous).",
                     style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _domainCtrl,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Domaine autorisé (optionnel)',
-                      hintText: 'ex: movie.votresite.com',
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  ElevatedButton(
-                    onPressed: _generating ? null : _generateKey,
-                    child: _generating
-                        ? const SizedBox(height: 18, width: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('GÉNÉRER UNE CLÉ API'),
-                  ),
-                ] else ...[
+                  )
+                else ...[
                   Row(
                     children: [
                       Expanded(
                         child: Text(
-                          _apiKey ?? 'SYRIX_API_KEY_•••••••••••••••••••••• (masquée)',
+                          _apiKey ?? 'syrix~•••••••••••••••••••••• (masquée)',
                           style: const TextStyle(color: Colors.white, fontFamily: 'monospace', fontSize: 13),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -194,12 +199,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    apiKeyDomain != null
-                        ? 'Verrouillée sur : $apiKeyDomain'
-                        : "Pas encore verrouillée — sera fixée au premier appel entrant.",
+                    [
+                      if (apiKeyName != null) 'Nom : $apiKeyName',
+                      apiKeyDomain != null
+                          ? 'Verrouillée sur : $apiKeyDomain'
+                          : "Pas encore verrouillée — sera fixée au premier appel entrant.",
+                    ].join(' — '),
                     style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                   ),
-                  const SizedBox(height: 12),
+                ],
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _nameCtrl,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Nom de la clé (optionnel)',
+                    hintText: 'ex: Site movie-syrix',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _domainCtrl,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Domaine autorisé (optionnel)',
+                    hintText: 'ex: movie.votresite.com',
+                  ),
+                ),
+                const SizedBox(height: 14),
+                ElevatedButton(
+                  onPressed: _generating ? null : _generateKey,
+                  child: _generating
+                      ? const SizedBox(height: 18, width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Text(hasKey ? 'RÉGÉNÉRER LA CLÉ API' : 'GÉNÉRER UNE CLÉ API'),
+                ),
+                if (hasKey) ...[
+                  const SizedBox(height: 8),
                   TextButton(
                     onPressed: _revokeKey,
                     child: const Text('Révoquer la clé', style: TextStyle(color: AppColors.accent)),

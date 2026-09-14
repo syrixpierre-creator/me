@@ -49,6 +49,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    // Nom donné par l'utilisateur pour reconnaître sa clé (ex: "Site movie-syrix").
+    apiKeyName: {
+      type: String,
+      default: null,
+    },
     apiKeyCreatedAt: {
       type: Date,
       default: null,
@@ -85,6 +90,7 @@ userSchema.methods.toSafeJSON = function () {
     theme: this.theme,
     hasApiKey: !!this.apiKey,
     apiKeyDomain: this.apiKeyDomain,
+    apiKeyName: this.apiKeyName,
     favoritesCount: this.favorites?.length || 0,
     downloadsCount: this.downloads?.length || 0,
     createdAt: this.createdAt,

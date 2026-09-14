@@ -146,8 +146,35 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
       );
       return;
     }
-    final servers = await ApiService.fetchEpisodeServers(epId.toString());
-    if (mounted) _showServers(servers);
+    final serversJson = await ApiService.fetchEpisodeServers(epId.toString());
+    if (!mounted) return;
+    _autoPlayFirstServer(serversJson);
+  }
+
+  /// Pas de sélection visuelle : on prend automatiquement le premier
+  /// serveur disponible (avec un lien non vide) et on lance la lecture.
+  void _autoPlayFirstServer(Map<String, dynamic> serversJson) {
+    if (serversJson['success'] != true) {
+      final msg = (serversJson['error'] is Map) ? serversJson['error']['message'] : null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg ?? 'Aucun serveur disponible pour le moment.')),
+      );
+      return;
+    }
+    final List servers = serversJson['data'] as List? ?? [];
+    final server = servers.cast<Map>().firstWhere(
+      (s) => (s['server_link']?.toString() ?? '').isNotEmpty,
+      orElse: () => {},
+    );
+    if (server.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aucun serveur disponible pour le moment.')),
+      );
+      return;
+    }
+    final name = server['server_name']?.toString() ?? 'Serveur';
+    final link = server['server_link']?.toString() ?? '';
+    _playServer(name, link);
   }
 
   Future<void> _watchEpisode(Map episode) async {
@@ -299,7 +326,7 @@ class _MediaDetailScreenState extends State<MediaDetailScreen> {
                           : (_isPaused ? 'Reprendre' : 'Mettre en pause'),
                     ),
                   ),
-                if (_isPlaying && _activeServerName != null) ...[
+                if (_isPlaying && !isMovie && _activeServerName != null) ...[
                   const SizedBox(height: 8),
                   Text('Serveur : $_activeServerName', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                 ],

@@ -69,13 +69,17 @@ class ApiService {
     return jsonDecode(res.body);
   }
 
-  /// Génère la clé API développeur. `domain` optionnel — sinon
-  /// auto-détection au premier appel réel (voir doc backend).
-  static Future<Map<String, dynamic>> generateApiKey({String? domain}) async {
+  /// Génère (ou régénère, si l'utilisateur en a déjà une) la clé API
+  /// développeur. `name`/`domain` optionnels — le domaine s'auto-détecte au
+  /// premier appel réel s'il n'est pas fourni (voir doc backend).
+  static Future<Map<String, dynamic>> generateApiKey({String? name, String? domain}) async {
     final res = await http.post(
       Uri.parse('$baseUrl/profile/api-key'),
       headers: await _headers(),
-      body: jsonEncode({if (domain != null && domain.isNotEmpty) 'domain': domain}),
+      body: jsonEncode({
+        if (name != null && name.isNotEmpty) 'name': name,
+        if (domain != null && domain.isNotEmpty) 'domain': domain,
+      }),
     );
     return jsonDecode(res.body);
   }
