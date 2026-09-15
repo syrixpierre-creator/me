@@ -138,7 +138,11 @@ const SyrixDrawer = (() => {
 })();
 
 /* --- Génère le HTML d'une carte média --- */
-function sfMediaCard(title, progress, image) {
+/* `type`/`slug` sont optionnels : sans eux, la carte reste purement
+   visuelle (compat rétro). Avec eux, la carte devient cliquable — la
+   navigation elle-même est gérée une seule fois, plus bas, par
+   délégation d'événement (pas besoin de re-câbler chaque page). */
+function sfMediaCard(title, progress, image, type, slug) {
   const progressHtml =
     progress === undefined || progress === null
       ? ""
@@ -146,11 +150,90 @@ function sfMediaCard(title, progress, image) {
   const thumbHtml = image
     ? `<img src="${image}" alt="" loading="lazy" />`
     : "🎬";
+  const clickAttrs = (type && slug)
+    ? ` data-type="${String(type).replace(/"/g, "&quot;")}" data-slug="${String(slug).replace(/"/g, "&quot;")}" role="button" tabindex="0"`
+    : "";
   return `
-    <div class="sf-media-card">
+    <div class="sf-media-card"${clickAttrs}>
       <div class="sf-media-card__thumb">${thumbHtml}</div>
       ${progressHtml}
       <div class="sf-media-card__title">${title}</div>
     </div>
   `;
 }
+
+/* Une seule délégation de clic pour TOUTES les cartes de TOUTES les pages :
+   pas besoin de re-câbler la navigation à chaque nouvel endroit où
+   sfMediaCard() est utilisée. */
+function sfGoToDetail(type, slug) {
+  window.location.href = "detail.html?type=" + encodeURIComponent(type) + "&slug=" + encodeURIComponent(slug);
+}
+document.addEventListener("click", (e) => {
+  const card = e.target.closest(".sf-media-card[data-slug]");
+  if (!card) return;
+  sfGoToDetail(card.dataset.type, card.dataset.slug);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const card = e.target.closest(".sf-media-card[data-slug]");
+  if (!card) return;
+  e.preventDefault();
+  sfGoToDetail(card.dataset.type, card.dataset.slug);
+});
+
+/* =========================================================
+   Politique de sandbox iframe par lecteur — port fidèle de
+   services/player_policy.py (version Python du projet). Bloque les
+   popups publicitaires par défaut ; ne les autorise que pour les
+   hébergeurs vidéo connus qui en ont réellement besoin pour fonctionner.
+   ========================================================= */
+function playerSandbox(serverName, serverLink) {
+  const DEFAULT_SANDBOX = "allow-scripts allow-same-origin allow-forms allow-presentation";
+  const BASE = ["allow-scripts", "allow-same-origin", "allow-presentation"];
+  const POPUPS = ["allow-popups", "allow-popups-to-escape-sandbox"];
+
+  const RULES = [
+    { keywords: ["vidmoly"], tokens: [...BASE, "allow-pointer-lock"] },
+    { keywords: ["voe.", "voe.sx", "voe-"], tokens: [...BASE, "allow-forms", ...POPUPS, "allow-top-navigation-by-user-activation"] },
+    { keywords: ["streamtape", "stape"], tokens: [...BASE, ...POPUPS] },
+    { keywords: ["mail.ru", "my.mail.ru"], tokens: [...BASE, "allow-forms"] },
+    { keywords: ["kokoflix", "voembed", "vidsrc", "vidcloud", "upcloud", "filemoon"], tokens: [...BASE, "allow-forms", "allow-pointer-lock", ...POPUPS] },
+  ];
+
+  let host = "";
+  try { host = new URL(serverLink).host.toLowerCase(); } catch {}
+  const haystack = `${(serverName || "").toLowerCase()} ${host}`;
+
+  for (const rule of RULES) {
+    if (rule.keywords.some((k) => haystack.includes(k))) return rule.tokens.join(" ");
+  }
+  return DEFAULT_SANDBOX;
+}
+
+/* =========================================================
+   Chargement générique d'une grille de catalogue (Films / Séries /
+   Animés / K-Dramas), avec filtre de genre optionnel. Partagé entre
+   movie.html, serie.html, anime.html — évite de dupliquer la même
+   logique de fetch dans les trois pages.
+   ========================================================= */
+const SyrixCatalog = (() => {
+  async function loadGrid(gridEl, type, genre) {
+    gridEl.innerHTML = `<p class="sf-placeholder">Chargement...</p>`;
+    const qs = genre ? "?genre=" + encodeURIComponent(genre) : "";
+    const res = await SyrixAuth.api("/" + type + qs);
+    const items = res.success ? (res.data || []) : [];
+
+    if (!items.length) {
+      gridEl.innerHTML = `<p class="sf-placeholder">${
+        res.success ? "Aucun résultat pour le moment." : (res.error?.message || "Erreur de chargement.")
+      }</p>`;
+      return;
+    }
+    gridEl.innerHTML = "";
+    items.forEach((item) => {
+      gridEl.insertAdjacentHTML("beforeend", sfMediaCard(item.title || "—", null, item.image, item.type, item.slug));
+    });
+  }
+
+  return { loadGrid };
+})();

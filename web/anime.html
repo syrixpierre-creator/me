@@ -37,7 +37,9 @@
     SyrixAuth.requireAuth();
 
     const grid = document.getElementById("grid");
-    for (let i = 1; i <= 9; i++) grid.insertAdjacentHTML("beforeend", sfMediaCard("Anime " + i));
+    let currentGenre = null;
+
+    SyrixCatalog.loadGrid(grid, "anime", currentGenre);
 
     document.querySelectorAll("#sortTabs button").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -46,7 +48,13 @@
       });
     });
     document.querySelectorAll("#genrePills .sf-pill").forEach((pill) => {
-      pill.addEventListener("click", () => pill.classList.toggle("sf-active"));
+      pill.addEventListener("click", () => {
+        const alreadyActive = pill.classList.contains("sf-active");
+        document.querySelectorAll("#genrePills .sf-pill").forEach((p) => p.classList.remove("sf-active"));
+        currentGenre = alreadyActive ? null : pill.textContent.trim();
+        if (currentGenre) pill.classList.add("sf-active");
+        SyrixCatalog.loadGrid(grid, "anime", currentGenre);
+      });
     });
   </script>
 </body>

@@ -123,7 +123,7 @@
       }
       trendingEl.innerHTML = "";
       items.forEach((item) => {
-        trendingEl.insertAdjacentHTML("beforeend", sfMediaCard(item.title || "—", null, item.image));
+        trendingEl.insertAdjacentHTML("beforeend", sfMediaCard(item.title || "—", null, item.image, item.type, item.slug));
       });
     }
 
@@ -160,7 +160,7 @@
         const carousel = document.createElement("div");
         carousel.className = "sf-carousel";
         items.forEach((item) => {
-          carousel.insertAdjacentHTML("beforeend", sfMediaCard(item.title || "—", null, item.image));
+          carousel.insertAdjacentHTML("beforeend", sfMediaCard(item.title || "—", null, item.image, item.type, item.slug));
         });
         section.appendChild(h2);
         section.appendChild(carousel);
@@ -265,7 +265,7 @@
       }
       resultsGrid.innerHTML = "";
       items.forEach((item) => {
-        resultsGrid.insertAdjacentHTML("beforeend", sfMediaCard(item.title || "—", null, item.image));
+        resultsGrid.insertAdjacentHTML("beforeend", sfMediaCard(item.title || "—", null, item.image, item.type, item.slug));
       });
     }
 

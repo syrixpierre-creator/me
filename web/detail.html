@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>SYRIX FLIX</title>
+<link rel="stylesheet" href="assets/css/site.css" />
+<link rel="stylesheet" href="assets/css/app.css" />
+<style>
+  .sf-detail-backdrop {
+    margin: 0 0 20px; height: 220px; background-size: cover; background-position: center;
+    background-color: var(--sf-surface); display: flex; align-items: flex-end;
+  }
+  .sf-detail-backdrop::after { content: ""; }
+  .sf-detail-body { padding: 0 16px 40px; }
+  .sf-detail-title { font-size: 22px; font-weight: 900; margin: 0 0 8px; }
+  .sf-detail-meta { display: flex; gap: 12px; color: var(--sf-muted); font-size: 13px; margin-bottom: 14px; flex-wrap: wrap; }
+  .sf-detail-genres { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .sf-detail-genres span {
+    padding: 6px 12px; border-radius: 16px; border: 1px solid var(--sf-border); font-size: 12px;
+  }
+  .sf-detail-synopsis { color: var(--sf-muted); line-height: 1.6; margin-bottom: 20px; }
+  .sf-episode-list { display: flex; flex-direction: column; }
+  .sf-episode-item {
+    display: flex; align-items: center; gap: 12px; padding: 14px 4px;
+    border-bottom: 1px solid var(--sf-border); cursor: pointer; background: none; border-left: none;
+    border-right: none; border-top: none; width: 100%; text-align: left; color: var(--sf-text);
+    font-family: inherit; font-size: 14px;
+  }
+  .sf-episode-item:hover { background: rgba(255,255,255,0.04); }
+  .sf-episode-item i { color: var(--sf-accent); font-style: normal; font-size: 18px; }
+
+  /* Feuille de sélection de serveur */
+  .sf-sheet-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200;
+  }
+  .sf-sheet-overlay.sf-open { display: block; }
+  .sf-sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; background: var(--sf-surface);
+    border-radius: 16px 16px 0 0; padding: 16px 0 8px; z-index: 201;
+    transform: translateY(100%); transition: transform .25s ease;
+    max-height: 70vh; overflow-y: auto;
+  }
+  .sf-sheet.sf-open { transform: translateY(0); }
+  .sf-sheet h3 { padding: 0 20px; margin: 0 0 8px; font-size: 15px; }
+  .sf-server-item {
+    display: flex; align-items: center; gap: 12px; padding: 14px 20px; cursor: pointer;
+    background: none; border: none; width: 100%; text-align: left; color: var(--sf-text); font-family: inherit;
+  }
+  .sf-server-item:hover { background: rgba(255,255,255,0.06); }
+  .sf-server-item .sf-server-name { font-size: 14px; }
+  .sf-server-item .sf-server-version { font-size: 12px; color: var(--sf-muted); margin-left: auto; }
+
+  /* Lecteur embarqué */
+  .sf-player-wrap { position: relative; width: 100%; aspect-ratio: 16/9; background: #000; margin-bottom: 16px; }
+  .sf-player-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
+  .sf-player-close {
+    position: absolute; top: 8px; right: 8px; z-index: 2; background: rgba(0,0,0,0.6); color: #fff;
+    border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 16px; cursor: pointer;
+  }
+</style>
+</head>
+<body class="sf-app">
+  <div class="sf-topbar">
+    <button class="sf-topbar__back" onclick="history.length > 1 ? history.back() : (window.location.href = 'accueil.html')">←</button>
+    <h1 class="sf-topbar__title" id="pageTitle">Chargement...</h1>
+  </div>
+
+  <div id="playerZone"></div>
+  <div class="sf-detail-backdrop" id="backdrop"></div>
+
+  <div class="sf-detail-body">
+    <div id="content">
+      <p class="sf-placeholder">Chargement...</p>
+    </div>
+  </div>
+
+  <div class="sf-sheet-overlay" id="sheetOverlay"></div>
+  <div class="sf-sheet" id="serverSheet">
+    <h3>Choisis un serveur</h3>
+    <div id="serverList"></div>
+  </div>
+
+  <script src="assets/js/app-common.js"></script>
+  <script>
+    SyrixAuth.requireAuth();
+
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get("type"); // 'movie' | 'series' | 'anime' | 'drama'
+    const slug = params.get("slug");
+
+    // Segment de route API pluriel attendu par le backend
+    function routeType(t) {
+      if (t === "movie") return "movies";
+      if (t === "drama") return "dramas";
+      return t; // 'series' et 'anime' sont déjà identiques au singulier/pluriel
+    }
+
+    let currentTitle = "";
+
+    function openServerSheet(servers) {
+      const list = document.getElementById("serverList");
+      if (!servers.length) {
+        list.innerHTML = `<p class="sf-placeholder">Aucun serveur disponible pour le moment.</p>`;
+      } else {
+        list.innerHTML = servers.map((s, i) => `
+          <button class="sf-server-item" data-i="${i}">
+            <i style="color:var(--sf-accent);">▶</i>
+            <span class="sf-server-name">${s.server_name || "Serveur"}</span>
+            ${s.version ? `<span class="sf-server-version">${s.version}</span>` : ""}
+          </button>
+        `).join("");
+        list.querySelectorAll(".sf-server-item").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const s = servers[Number(btn.dataset.i)];
+            closeSheet();
+            if (s.server_link) playInline(s.server_name || "Serveur", s.server_link);
+          });
+        });
+      }
+      document.getElementById("sheetOverlay").classList.add("sf-open");
+      document.getElementById("serverSheet").classList.add("sf-open");
+    }
+    function closeSheet() {
+      document.getElementById("sheetOverlay").classList.remove("sf-open");
+      document.getElementById("serverSheet").classList.remove("sf-open");
+    }
+    document.getElementById("sheetOverlay").addEventListener("click", closeSheet);
+
+    function playInline(serverName, link) {
+      const sandbox = playerSandbox(serverName, link);
+      const zone = document.getElementById("playerZone");
+      zone.innerHTML = `
+        <div class="sf-player-wrap">
+          <button class="sf-player-close" id="closePlayer">✕</button>
+          <iframe src="${link}" sandbox="${sandbox}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+        </div>
+      `;
+      zone.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById("closePlayer").addEventListener("click", () => { zone.innerHTML = ""; });
+    }
+
+    async function watchMovie(detail) {
+      if (!detail.first_episode_id) {
+        alert("Aucun épisode disponible pour ce titre.");
+        return;
+      }
+      const res = await SyrixAuth.api("/episodes/" + encodeURIComponent(detail.first_episode_id) + "/servers");
+      openServerSheet(res.success ? (res.data || []) : []);
+    }
+
+    async function watchEpisode(episodeId) {
+      let res;
+      if (type === "series") {
+        res = await SyrixAuth.api("/episodes/" + encodeURIComponent(episodeId) + "/servers");
+      } else {
+        res = await SyrixAuth.api("/" + routeType(type) + "/" + encodeURIComponent(slug) + "/servers?episode=" + encodeURIComponent(episodeId));
+      }
+      openServerSheet(res.success ? (res.data || []) : []);
+    }
+
+    function renderDetail(detail) {
+      currentTitle = detail.title || "—";
+      document.getElementById("pageTitle").textContent = currentTitle;
+
+      const backdrop = document.getElementById("backdrop");
+      if (detail.image) backdrop.style.backgroundImage = `url('${detail.image}')`;
+
+      const metaParts = [];
+      if (detail.year) metaParts.push(detail.year);
+      if (detail.status) metaParts.push(detail.status);
+      if (detail.country) metaParts.push(detail.country);
+
+      const genresHtml = (detail.genres || []).map((g) => `<span>${g}</span>`).join("");
+      const episodes = detail.episodes || [];
+      const isMovie = type === "movie";
+
+      let actionHtml = "";
+      let episodesHtml = "";
+
+      if (isMovie) {
+        actionHtml = `<button class="sf-btn-block" id="watchBtn">▶ Regarder</button>`;
+      } else if (episodes.length) {
+        episodesHtml = `
+          <div class="sf-episode-list">
+            ${episodes.map((ep, i) => `
+              <button class="sf-episode-item" data-i="${i}">
+                <i>▶</i><span>${ep.title || ("Épisode " + (ep.number || i + 1))}</span>
+              </button>
+            `).join("")}
+          </div>
+        `;
+      } else {
+        episodesHtml = `<p class="sf-placeholder">Aucun épisode disponible pour le moment.</p>`;
+      }
+
+      document.getElementById("content").innerHTML = `
+        <h2 class="sf-detail-title">${currentTitle}</h2>
+        <div class="sf-detail-meta">${metaParts.map((m) => `<span>${m}</span>`).join("<span>·</span>")}</div>
+        ${genresHtml ? `<div class="sf-detail-genres">${genresHtml}</div>` : ""}
+        ${detail.synopsis ? `<p class="sf-detail-synopsis">${detail.synopsis}</p>` : ""}
+        ${actionHtml}
+        ${episodesHtml}
+      `;
+
+      if (isMovie) {
+        document.getElementById("watchBtn").addEventListener("click", () => watchMovie(detail));
+      } else if (episodes.length) {
+        document.querySelectorAll(".sf-episode-item").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const ep = episodes[Number(btn.dataset.i)];
+            watchEpisode(ep.episode_id);
+          });
+        });
+      }
+    }
+
+    async function init() {
+      if (!type || !slug) {
+        document.getElementById("content").innerHTML = `<p class="sf-placeholder">Titre introuvable.</p>`;
+        return;
+      }
+      const res = await SyrixAuth.api("/" + routeType(type) + "/" + encodeURIComponent(slug));
+      if (!res.success) {
+        document.getElementById("content").innerHTML = `<p class="sf-placeholder">${res.error?.message || "Erreur de chargement."}</p>`;
+        return;
+      }
+      renderDetail(res.data);
+    }
+    init();
+  </script>
+</body>
+</html>
