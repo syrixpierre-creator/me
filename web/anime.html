@@ -4,40 +4,42 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>SYRIX FLIX — Anime</title>
+<link rel="manifest" href="/manifest.json" />
+<link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
+<meta name="theme-color" content="#e50914" />
 <link rel="stylesheet" href="assets/css/site.css" />
 <link rel="stylesheet" href="assets/css/app.css" />
 </head>
 <body class="sf-app">
   <div class="sf-topbar">
-    <button class="sf-topbar__back" onclick="window.location.href='accueil.html'">←</button>
-    <h1 class="sf-topbar__title">Anime</h1>
+    <button class="sf-topbar__back" id="backBtn" onclick="window.location.href='accueil.html'"></button>
+    <h1 class="sf-topbar__title">Anime &bull; VOSTFR &amp; VF</h1>
   </div>
 
-  <div class="sf-banner"><span>Jujutsu Kaisen</span></div>
-
   <div class="sf-tabs" id="sortTabs">
-    <button class="sf-active" data-i="0">Nouveautés</button>
-    <button data-i="1">Populaire</button>
+    <button class="sf-active" data-genre="">Tout l'Anime</button>
+    <button data-genre="Shonen">Shonen</button>
+    <button data-genre="Action">Action</button>
+    <button data-genre="Fantasy">Fantasy</button>
+    <button data-genre="Romance">Romance</button>
   </div>
 
   <div class="sf-grid" id="grid"></div>
 
-  <div style="height:18px"></div>
-  <p style="padding:0 16px;font-weight:700;font-size:15px;margin:0 0 10px;">Genre</p>
-  <div class="sf-pills" id="genrePills">
-    <button class="sf-pill">Shonen</button>
-    <button class="sf-pill">Action</button>
-    <button class="sf-pill">Fantasy</button>
-    <button class="sf-pill">Romance</button>
-  </div>
   <div style="height:32px"></div>
 
   <script src="assets/js/app-common.js"></script>
+  <script src="assets/js/apk-banner.js"></script>
+  <script src="assets/js/cookie-consent.js"></script>
   <script>
     SyrixAuth.requireAuth();
 
+    const backBtn = document.getElementById("backBtn");
+    if (backBtn) backBtn.innerHTML = sfIcon("arrowLeft", 20);
+
     const grid = document.getElementById("grid");
-    let currentGenre = null;
+    let currentGenre = "";
 
     SyrixCatalog.loadGrid(grid, "anime", currentGenre);
 
@@ -45,14 +47,7 @@
       btn.addEventListener("click", () => {
         document.querySelectorAll("#sortTabs button").forEach((b) => b.classList.remove("sf-active"));
         btn.classList.add("sf-active");
-      });
-    });
-    document.querySelectorAll("#genrePills .sf-pill").forEach((pill) => {
-      pill.addEventListener("click", () => {
-        const alreadyActive = pill.classList.contains("sf-active");
-        document.querySelectorAll("#genrePills .sf-pill").forEach((p) => p.classList.remove("sf-active"));
-        currentGenre = alreadyActive ? null : pill.textContent.trim();
-        if (currentGenre) pill.classList.add("sf-active");
+        currentGenre = btn.dataset.genre || "";
         SyrixCatalog.loadGrid(grid, "anime", currentGenre);
       });
     });

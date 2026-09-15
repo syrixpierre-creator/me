@@ -17,7 +17,8 @@ async function requireAuth(req, res, next) {
   }
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const secret = process.env.JWT_SECRET || "syrix-flix-super-secret-key-fallback";
+    const payload = jwt.verify(token, secret);
     // .select("+apiKey") : apiKey a `select: false` dans le schéma, sans ce
     // +apiKey req.user.apiKey resterait toujours undefined ici, ce qui
     // cassait hasApiKey (toSafeJSON) et la détection de clé existante lors

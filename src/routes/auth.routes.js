@@ -3,9 +3,10 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 const router = express.Router();
+const JWT_SECRET = process.env.JWT_SECRET || "syrix-flix-super-secret-key-fallback";
 
 function signToken(user) {
-  return jwt.sign({ sub: user._id.toString() }, process.env.JWT_SECRET, {
+  return jwt.sign({ sub: (user._id || user.id).toString() }, JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "30d",
   });
 }

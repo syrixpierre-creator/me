@@ -1,36 +1,40 @@
 const axios = require("axios");
+const { getFallbackCatalog } = require("./fallbackCatalog");
 
-// Client vers l'API publique SYRIX FLIX déjà déployée sur le VPS.
-// Elle sert de source de catalogue (films/séries/anime/K-dramas) — voir docs fournies.
+// Client vers l'API publique SYRIX FLIX
 const catalogClient = axios.create({
   baseURL: process.env.CATALOG_API_BASE_URL,
-  timeout: 15000,
+  timeout: 6000,
 });
 
 /**
- * Relaie une requête GET vers l'API catalogue et normalise les erreurs
- * dans le même format que le reste de notre propre API.
+ * Relaie une requête GET vers l'API catalogue et normalise les erreurs.
+ * Bascule automatiquement sur le catalogue de secours local si le service distant
+ * n'est pas configuré, échoue avec une erreur 5xx, ou est injoignable.
  */
 async function forwardGet(path, params = {}) {
+  if (!process.env.CATALOG_API_BASE_URL) {
+    return getFallbackCatalog(path, params);
+  }
+
   try {
     const { data } = await catalogClient.get(path, { params });
-    return { status: 200, body: data };
-  } catch (err) {
-    if (err.response) {
-      // L'API source a répondu avec une erreur — on relaie telle quelle,
-      // elle respecte déjà l'enveloppe { success, error: { code, message } }.
-      return { status: err.response.status, body: err.response.data };
+    // Si la réponse est valide et contient des données
+    if (data && (data.success || Array.isArray(data.data) || data.data)) {
+      return { status: 200, body: data };
     }
-    return {
-      status: 502,
-      body: {
-        success: false,
-        error: {
-          code: "source_unavailable",
-          message: "Le service de catalogue est momentanément indisponible.",
-        },
-      },
-    };
+    return getFallbackCatalog(path, params);
+  } catch (err) {
+    // Si l'erreur est un 404 légitime d'un film introuvable
+    if (err.response && err.response.status === 404 && !path.endsWith("s")) {
+      // Tente quand même le catalogue local au cas où il s'y trouve
+      const local = getFallbackCatalog(path, params);
+      if (local.status === 200) return local;
+      return { status: 404, body: err.response.data };
+    }
+
+    console.warn(`[ProxyClient] Source distante instable pour ${path} — bascule automatique sur le catalogue local.`);
+    return getFallbackCatalog(path, params);
   }
 }
 

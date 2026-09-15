@@ -3,24 +3,286 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>SYRIX FLIX</title>
+<title>SYRIX FLIX — Intro</title>
+<meta name="description" content="Streaming de films, séries, animes et k-dramas en haute définition" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="icon" href="/assets/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
+<meta name="theme-color" content="#e50914" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/site.css" />
 <link rel="stylesheet" href="assets/css/app.css" />
+<style>
+  :root {
+    --netflix-red: #E50914;
+    --netflix-dark-red: #B81D24;
+  }
+  body, html {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background-color: #000; overflow: hidden;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .sf-cinema-stage {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at center, #1b0407 0%, #050507 55%, #000 100%);
+    overflow: hidden; perspective: 1000px;
+  }
+
+  /* Rayons lumineux neon en arrière-plan */
+  .sf-cinema-beams {
+    position: absolute; inset: 0; pointer-events: none;
+    background: conic-gradient(from 180deg at 50% 50%, rgba(229,9,20,0) 0deg, rgba(229,9,20,0.18) 60deg, rgba(229,9,20,0) 120deg, rgba(229,9,20,0.15) 240deg, rgba(229,9,20,0) 360deg);
+    animation: rotateBeams 16s linear infinite;
+    opacity: 0.6;
+  }
+  @keyframes rotateBeams {
+    0% { transform: rotate(0deg) scale(1.4); }
+    100% { transform: rotate(360deg) scale(1.4); }
+  }
+
+  /* Conteneur principal d'animation Netflix */
+  .sf-netflix-logo-box {
+    position: relative; z-index: 10;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transform: scale(0.7); opacity: 0;
+    animation: netflixBoom 2.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes netflixBoom {
+    0% {
+      opacity: 0;
+      transform: scale(0.2) translateZ(-400px);
+      filter: blur(20px) brightness(3);
+    }
+    20% {
+      opacity: 1;
+      transform: scale(0.9) translateZ(0);
+      filter: blur(0px) brightness(1.3);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.05) translateZ(40px);
+      filter: brightness(1.1);
+    }
+    85% {
+      opacity: 1;
+      transform: scale(1.15) translateZ(80px);
+      filter: brightness(1.4);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(2.8) translateZ(260px);
+      filter: blur(14px) brightness(2.5);
+    }
+  }
+
+  /* Ruban "N" / "S" stylisé Netflix avec dégradé et réflexion */
+  .sf-ribbon-n {
+    width: 90px; height: 140px; position: relative;
+    margin-bottom: 24px; filter: drop-shadow(0 0 35px rgba(229,9,20,0.85));
+  }
+  .sf-ribbon-leg {
+    position: absolute; top: 0; bottom: 0; width: 28px;
+    background: linear-gradient(to bottom, #FF1E27 0%, #E50914 40%, #85060C 100%);
+    box-shadow: 0 0 20px rgba(229,9,20,0.5);
+  }
+  .sf-ribbon-leg.left { left: 0; z-index: 1; }
+  .sf-ribbon-leg.right { right: 0; z-index: 1; }
+  .sf-ribbon-bar {
+    position: absolute; top: 0; bottom: 0; left: 0; right: 0; width: 30px; margin: auto;
+    background: linear-gradient(135deg, #FF333B 0%, #E50914 50%, #68050A 100%);
+    transform: skewX(-32deg); z-index: 2;
+    box-shadow: 0 0 25px rgba(229,9,20,0.8);
+  }
+
+  /* Titre SYRIX FLIX en typographie cinéma Bebas Neue */
+  .sf-netflix-title {
+    font-family: 'Bebas Neue', Impact, sans-serif;
+    font-size: 72px; letter-spacing: 12px; line-height: 0.9;
+    color: var(--netflix-red);
+    text-shadow: 0 0 25px rgba(229,9,20,0.8), 0 0 55px rgba(229,9,20,0.4);
+    display: flex; align-items: center; gap: 8px; margin: 0;
+  }
+  .sf-netflix-title span.white {
+    color: #FFFFFF;
+    text-shadow: 0 0 25px rgba(255,255,255,0.6);
+  }
+  
+  .sf-netflix-sub {
+    font-size: 13px; font-weight: 700; letter-spacing: 5px;
+    color: rgba(255,255,255,0.7); text-transform: uppercase;
+    margin-top: 14px;
+    animation: fadeInSub 1.5s ease 0.4s forwards;
+    opacity: 0;
+  }
+  @keyframes fadeInSub {
+    to { opacity: 0.9; }
+  }
+
+  /* Onde de choc lumineuse */
+  .sf-shockwave {
+    position: absolute; width: 300px; height: 300px; border-radius: 50%;
+    border: 2px solid rgba(229,9,20,0.8);
+    opacity: 0; pointer-events: none;
+    animation: shockwave 2.2s cubic-bezier(0.1, 0.8, 0.3, 1) 0.2s forwards;
+  }
+  @keyframes shockwave {
+    0% { transform: scale(0.2); opacity: 0.9; }
+    50% { opacity: 0.5; }
+    100% { transform: scale(3.5); opacity: 0; }
+  }
+
+  /* Bouton passer l'intro */
+  .sf-skip-intro {
+    position: fixed; top: 24px; right: 24px; z-index: 100;
+    background: rgba(0,0,0,0.6); color: rgba(255,255,255,0.8);
+    border: 1px solid rgba(255,255,255,0.25); border-radius: 20px;
+    padding: 8px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+    backdrop-filter: blur(10px); transition: all 0.2s ease;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .sf-skip-intro:hover {
+    background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.5);
+  }
+
+  /* Audio indicator */
+  .sf-audio-pill {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: rgba(20,20,20,0.8); color: rgba(255,255,255,0.6);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 20px;
+    padding: 6px 14px; font-size: 12px; pointer-events: none;
+    display: flex; align-items: center; gap: 6px; z-index: 100;
+  }
+</style>
 </head>
 <body class="sf-app">
-  <div class="sf-intro">
-    <span class="sf-logo sf-logo--lg">
-      <span class="sf-logo__mark">S</span>
-      <span class="sf-logo__text"><span>SYRIX</span><span class="sf-flix">FLIX</span></span>
-    </span>
-    <p>Experience Unlimited Entertainment</p>
+  <div class="sf-cinema-stage" id="stage" onclick="proceed()">
+    <div class="sf-cinema-beams"></div>
+    <div class="sf-shockwave"></div>
+
+    <div class="sf-netflix-logo-box">
+      <!-- Ruban emblématique N -->
+      <div class="sf-ribbon-n">
+        <div class="sf-ribbon-leg left"></div>
+        <div class="sf-ribbon-bar"></div>
+        <div class="sf-ribbon-leg right"></div>
+      </div>
+
+      <!-- Marque SYRIX FLIX -->
+      <h1 class="sf-netflix-title">
+        <span class="white">SYRIX</span><span>FLIX</span>
+      </h1>
+      <div class="sf-netflix-sub">Cinéma &amp; Séries Illimités</div>
+    </div>
+
+    <button class="sf-skip-intro" id="skipBtn" onclick="event.stopPropagation(); proceed();">
+      <span>Passer</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M5 4l10 8-10 8V4zm11 0h3v16h-3V4z"/>
+      </svg>
+    </button>
+
+    <div class="sf-audio-pill" id="audioPill">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+      </svg>
+      <span>Son cinéma activé</span>
+    </div>
   </div>
 
   <script src="assets/js/app-common.js"></script>
   <script>
-    setTimeout(() => {
-      window.location.href = SyrixAuth.getToken() ? "accueil.html" : "login.html";
-    }, 1800);
+    let hasProceeded = false;
+
+    // Synthèse sonore du son emblématique "TUDUM" via Web Audio API
+    function playTudumSound() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        if (ctx.state === "suspended") {
+          ctx.resume();
+        }
+
+        const now = ctx.currentTime;
+
+        // 1. Sub-bass boom (45 Hz -> 30 Hz)
+        const subOsc = ctx.createOscillator();
+        const subGain = ctx.createGain();
+        subOsc.type = "sine";
+        subOsc.frequency.setValueAtTime(55, now);
+        subOsc.frequency.exponentialRampToValueAtTime(28, now + 1.2);
+        subGain.gain.setValueAtTime(0.001, now);
+        subGain.gain.linearRampToValueAtTime(0.7, now + 0.08);
+        subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.6);
+        subOsc.connect(subGain);
+        subGain.connect(ctx.destination);
+        subOsc.start(now);
+        subOsc.stop(now + 1.6);
+
+        // 2. Frappe d'archet d'orchestre (accord dramatique 110Hz + 165Hz)
+        [110, 164.8, 220, 330].forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(freq, now + 0.05);
+          osc.frequency.exponentialRampToValueAtTime(freq * 0.96, now + 1.8);
+
+          const delay = idx * 0.015;
+          gain.gain.setValueAtTime(0.001, now + delay);
+          gain.gain.linearRampToValueAtTime(0.25 / (idx + 1), now + delay + 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.8);
+
+          // Filtre passe-bas chaleureux
+          const filter = ctx.createBiquadFilter();
+          filter.type = "lowpass";
+          filter.frequency.setValueAtTime(800, now);
+          filter.frequency.exponentialRampToValueAtTime(250, now + 1.5);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + delay);
+          osc.stop(now + 1.9);
+        });
+
+        // 3. Cloche métallique finale
+        const bellOsc = ctx.createOscillator();
+        const bellGain = ctx.createGain();
+        bellOsc.type = "triangle";
+        bellOsc.frequency.setValueAtTime(880, now + 0.2);
+        bellGain.gain.setValueAtTime(0.001, now + 0.2);
+        bellGain.gain.linearRampToValueAtTime(0.12, now + 0.25);
+        bellGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
+        bellOsc.connect(bellGain);
+        bellGain.connect(ctx.destination);
+        bellOsc.start(now + 0.2);
+        bellOsc.stop(now + 1.4);
+      } catch (e) {
+        // Audio non bloquant si le navigateur bloque l'autoplay
+      }
+    }
+
+    // Déclenchement automatique de l'audio et de la redirection
+    window.addEventListener("DOMContentLoaded", () => {
+      setTimeout(() => { playTudumSound(); }, 200);
+      setTimeout(() => { proceed(); }, 2700);
+    });
+
+    document.body.addEventListener("pointerdown", () => {
+      playTudumSound();
+    }, { once: true });
+
+    function proceed() {
+      if (hasProceeded) return;
+      hasProceeded = true;
+      const target = SyrixAuth.getToken() ? "accueil.html" : "login.html";
+      window.location.href = target;
+    }
   </script>
 </body>
 </html>

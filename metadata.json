@@ -1,0 +1,6 @@
+{
+  "name": "SYRIX FLIX",
+  "description": "Streaming catalog, video player, and developer API backend for SYRIX FLIX",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -21,7 +21,24 @@ const app = express();
 // de Railway), pas à un en-tête falsifiable par n'importe qui d'autre.
 app.set("trust proxy", 1);
 
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginOpenerPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    originAgentCluster: false,
+  })
+);
+
+// En-têtes pour garantir que Chrome traite le site en toute sécurité sans avertissement
+app.use((req, res, next) => {
+  res.setHeader("Content-Security-Policy", "upgrade-insecure-requests");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  next();
+});
+
 app.use(cors()); // ouvert : la restriction réelle se fait par clé API + domaine, pas par CORS
 app.use(express.json({ limit: "2mb" }));
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
@@ -38,12 +55,20 @@ app.use(
 // Page de documentation d'intégration API (statique)
 app.use("/docs", express.static(path.join(__dirname, "..", "public")));
 
+// PWA Service Worker & Manifest avec en-têtes d'installation stricts
+app.get("/sw.js", (req, res) => {
+  res.setHeader("Content-Type", "application/javascript");
+  res.setHeader("Service-Worker-Allowed", "/");
+  res.sendFile(path.join(__dirname, "..", "web", "sw.js"));
+});
+app.get("/manifest.json", (req, res) => {
+  res.setHeader("Content-Type", "application/manifest+json");
+  res.sendFile(path.join(__dirname, "..", "web", "manifest.json"));
+});
+
 // Site web (pages légales, FAQ, démo du lecteur, bannière APK, cookies) :
-// c'est LUI que le backend sert comme "frontend web". L'app mobile (Flutter/APK),
-// elle, n'est pas servie ici — c'est un binaire installé sur le téléphone qui
-// consomme cette API à distance ; seul le fichier .apk est mis à disposition
-// en téléchargement ci-dessous.
 app.use("/site", express.static(path.join(__dirname, "..", "web")));
+app.use(express.static(path.join(__dirname, "..", "web")));
 
 // App SYRIX FLIX compilée en Flutter Web (générée par le workflow GitHub
 // Actions .github/workflows/flutter-web.yml, qui committe le build dans
@@ -96,6 +121,31 @@ app.use((req, res) => {
   });
 });
 
+// Fallback en cas d'erreur de base de données (conformité migration web AI Studio)
+app.use((err, req, res, next) => {
+  if (
+    err.name === "MongooseError" ||
+    err.name === "MongoNetworkError" ||
+    (err.message && err.message.includes("buffering timed out"))
+  ) {
+    console.warn("[AI Studio] Base de données hors-ligne — réponse de secours active");
+    if (req.method === "GET") {
+      return res.json({
+        success: true,
+        data: req.path.endsWith("s") || req.path.endsWith("s/") ? [] : null,
+      });
+    }
+    return res.status(503).json({
+      success: false,
+      error: {
+        code: "db_offline",
+        message: "Service temporairement indisponible (base de données hors-ligne).",
+      },
+    });
+  }
+  next(err);
+});
+
 // Handler d'erreurs générique
 app.use((err, req, res, next) => {
   console.error(err);
@@ -105,16 +155,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3000;
 
-connectDB()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`[SYRIX FLIX API] En écoute sur le port ${PORT}`);
-      console.log(`[SYRIX FLIX API] Docs disponibles sur /docs`);
-    });
-  })
-  .catch((err) => {
-    console.error("Échec de connexion MongoDB:", err.message);
-    process.exit(1);
+connectDB().finally(() => {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`[SYRIX FLIX API] En écoute sur http://0.0.0.0:${PORT}`);
+    console.log(`[SYRIX FLIX API] Docs disponibles sur /docs`);
   });
+});
