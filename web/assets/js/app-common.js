@@ -318,16 +318,20 @@ document.addEventListener("click", (e) => {
 });
 
 // --- Sandbox Iframe selon les règles de sécurité ---
+// IMPORTANT : ni allow-popups, ni allow-top-navigation(-by-user-activation)
+// ne sont JAMAIS accordés, quel que soit l'hébergeur. Ce sont précisément
+// ces deux permissions qui laissent la publicité du serveur vidéo ouvrir un
+// onglet ou rediriger toute la page dès le clic sur "Regarder" — le clic
+// sert de "user activation" que la pub détourne à son profit.
 function playerSandbox(serverName, serverLink) {
   const BASE = ["allow-scripts", "allow-same-origin", "allow-presentation"];
-  const POPUPS = ["allow-popups", "allow-popups-to-escape-sandbox"];
   const DEFAULT = [...BASE, "allow-forms"].join(" ");
 
   const RULES = [
     { keywords: ["vidmoly"], tokens: [...BASE, "allow-pointer-lock"] },
-    { keywords: ["voe.", "voe.sx", "voe-"], tokens: [...BASE, "allow-forms", ...POPUPS, "allow-top-navigation-by-user-activation"] },
-    { keywords: ["streamtape", "stape"], tokens: [...BASE, ...POPUPS] },
-    { keywords: ["kokoflix", "voembed", "vidsrc", "vidcloud", "upcloud", "filemoon", "vidzy"], tokens: [...BASE, "allow-forms", "allow-pointer-lock", ...POPUPS] },
+    { keywords: ["voe.", "voe.sx", "voe-"], tokens: [...BASE, "allow-forms"] },
+    { keywords: ["streamtape", "stape"], tokens: [...BASE] },
+    { keywords: ["kokoflix", "voembed", "vidsrc", "vidcloud", "upcloud", "filemoon", "vidzy"], tokens: [...BASE, "allow-forms", "allow-pointer-lock"] },
   ];
 
   let host = "";
