@@ -12,7 +12,27 @@ const { getGlobalSetting, setGlobalSetting, isBanned } = require('./store');
 const { bareNumber, resolveSenderPhoneNumber, isBotIdentity } = require('./jidUtils');
 const { getLang, LANGUAGES } = require('./i18n');
 
-const XKIRO_BASE = (process.env.XKIRO_BASE_URL || 'https://api.xkiro.com/v1').replace(/\/+$/, '');
+// The bot never loads .env as a whole (pm2 starts it without dotenv), so only
+// the XKIRO_* lines are read from it here. Real environment variables win.
+// Deliberately limited to XKIRO_* so old values in .env (PORT, PREFIX...)
+// don't suddenly take effect.
+(function loadXkiroFromEnvFile() {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const txt = fs.readFileSync(path.join(__dirname, '..', '.env'), 'utf8');
+    for (const line of txt.split(/\r?\n/)) {
+      const m = line.match(/^\s*(?:export\s+)?(XKIRO_[A-Z_]+)\s*=\s*(.*?)\s*$/);
+      if (!m) continue;
+      const value = m[2].replace(/^(['"])(.*)\1$/, '$2');
+      if (value && !process.env[m[1]]) process.env[m[1]] = value;
+    }
+  } catch {
+    // no .env — fine
+  }
+})();
+
+const XKIRO_BASE =(process.env.XKIRO_BASE_URL || 'https://api.xkiro.com/v1').replace(/\/+$/, '');
 const DEFAULT_MODEL = process.env.XKIRO_MODEL || 'qwen/qwen3.8-omni-flash:free';
 // Tried in order after the chosen model if it errors / is overloaded (all free on xKiro).
 const FALLBACK_MODELS = ['mistralai/mistral-small-2603', 'qwen/qwen3.7-flash:free', 'cohere/command-a'];
