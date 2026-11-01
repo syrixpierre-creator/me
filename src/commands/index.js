@@ -94,6 +94,7 @@ const CATEGORY_STYLE = {
   AI: '🤖',
   DOWNLOADER: '📥',
   FUN: '🎭',
+  GAMES: '🎮',
   'GROUP-ADMIN': '👥',
   'GROUP-SECURITY': '🛡️',
   NSFW: '🔞',
@@ -107,6 +108,7 @@ const CATEGORY_ORDER = [
   'INFO', 
   'TOOLS', 
   'FUN',
+  'GAMES',
   'GROUP-ADMIN', 
   'GROUP-SECURITY', 
   'NSFW', 
@@ -1102,8 +1104,10 @@ register({
 // don't need to change.
 const MENU_STYLES = ['classic', 'compact', 'minimal', 'neon', 'elegant'];
 
-function buildMenu(style, { commandPrefix, name, isGroup, sessionId }) {
+function buildMenu(style, { commandPrefix, name, isGroup, sessionId, lang }) {
   const os = require('os');
+  const { t: tr, getSessionLang, LANGUAGES } = require('../i18n');
+  const L = lang || getSessionLang(sessionId);
   const byCategory = {};
   for (const cmd of new Set(commands.values())) {
     byCategory[cmd.category] = byCategory[cmd.category] || [];
@@ -1123,13 +1127,14 @@ function buildMenu(style, { commandPrefix, name, isGroup, sessionId }) {
   ];
 
   let menu = `╭───────────────⭓\n`;
-  menu += `│ 👤 User : ${name}\n`;
-  menu += `│ ⏱ Runtime : ${uptime}\n`;
-  menu += `│ 🕒 Time : ${time}\n`;
-  menu += `│ 💾 RAM : ${ram}\n`;
-  menu += `│ ⚙️ Prefix : [ ${commandPrefix} ]\n`;
-  menu += `│ 📦 Commands : ${totalCommands}\n`;
-  menu += `│ 🌐 Mode : ${isGroup ? 'Group' : 'Private'}\n`;
+  menu += `│ 👤 ${tr(L, 'menu.user')} : ${name}\n`;
+  menu += `│ ⏱ ${tr(L, 'menu.runtime')} : ${uptime}\n`;
+  menu += `│ 🕒 ${tr(L, 'menu.time')} : ${time}\n`;
+  menu += `│ 💾 ${tr(L, 'menu.ram')} : ${ram}\n`;
+  menu += `│ ⚙️ ${tr(L, 'menu.prefix')} : [ ${commandPrefix} ]\n`;
+  menu += `│ 📦 ${tr(L, 'menu.commands')} : ${totalCommands}\n`;
+  menu += `│ 🌐 ${tr(L, 'menu.mode')} : ${isGroup ? tr(L, 'menu.group') : tr(L, 'menu.private')}\n`;
+  menu += `│ 🗣️ ${tr(L, 'menu.lang')} : ${LANGUAGES[L].flag} ${LANGUAGES[L].name}\n`;
   menu += `╰───────────────⭓\n`;
 
   for (const cat of orderedCats) {
@@ -1156,11 +1161,14 @@ register({
     const style = getGlobalSetting(sessionId, 'menuStyle') || DEFAULT_MENU_STYLE;
     const name = msg?.pushName || sender.split('@')[0];
 
+    const { getLang } = require('../i18n');
+    const { bareNumber } = require('../jidUtils');
     const menu = buildMenu(MENU_STYLES.includes(style) ? style : 'classic', {
       commandPrefix,
       name,
       isGroup,
       sessionId,
+      lang: getLang(sessionId, msg?.key?.fromMe ? bareNumber(sessionId) : resolveSenderPhoneNumber(msg)),
     });
 
     const menuImage = await getMenuImage(sessionId);
@@ -3270,180 +3278,6 @@ register({
     msg += `🆔 *JID:* ${from}\n`;
     msg += `📅 *Created:* ${new Date(meta.creation * 1000).toLocaleDateString()}`;
     await sock.sendMessage(from, { text: msg });
-  }
-});
-register({
-  name: 'ytmp3',
-  aliases: ['yt3', 'ytmusic', 'ytaudio'],
-  category: 'DOWNLOADER',
-  description: 'Download YouTube videos as MP3 audio with quality selection',
-  async execute({ sock, from, args, prefix, command }) {
-    if (!args[0]) {
-      return await sock.sendMessage(from, { 
-        text: `🎵 *YouTube MP3 Downloader*\n\nUsage: ${prefix}${command} <url> [quality]\nExample: ${prefix}${command} https://youtu.be/qF-JLqKtr2Q\n\n*Quality options:*\n• 320kbps (best)\n• 128kbps (default)\n\n*Examples:*\n${prefix}${command} https://youtu.be/xxxxx 320\n${prefix}${command} https://youtu.be/xxxxx 128\n\n*Note:* Download URL expires in 10 minutes.` 
-      });
-    }
-
-    const url = args[0];
-    let quality = '128'; // Default quality
-
-    // Check if user specified quality
-    const qualityArg = args[1] || '';
-    if (qualityArg === '320' || qualityArg === '320kbps') {
-      quality = '320';
-    }
-
-    if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
-      return await sock.sendMessage(from, { 
-        text: `❌ Invalid URL. Please provide a valid YouTube link.` 
-      });
-    }
-
-    await sock.sendMessage(from, { text: `⏳ Processing YouTube audio...` });
-
-    try {
-      // Primary: GiftedTech API
-      const response = await fetch(
-        `https://api.giftedtech.co.ke/api/download/ytmp3?apikey=gifted&url=${encodeURIComponent(url)}&quality=${quality}kbps`,
-        {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`API returned ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      // Extract data
-      let title = data.result?.title || 'YouTube Audio';
-      let thumbnail = data.result?.thumbnail || null;
-      let downloadUrl = data.result?.download_url || null;
-      let format = data.result?.format || 'mp3';
-      let qualityReturned = data.result?.quality || `${quality}kbps`;
-      let availableQualities = data.result?.availableQualities || [];
-      let message = data.result?.message || '';
-
-      if (!downloadUrl) {
-        throw new Error("Could not extract download URL from API response.");
-      }
-
-      // Send thumbnail if available
-      if (thumbnail) {
-        try {
-          await sock.sendMessage(from, {
-            image: { url: thumbnail },
-            caption: `🎵 *${title}*\n📊 *Quality:* ${qualityReturned}\n📦 *Format:* ${format}\n${message ? `\n${message}` : ''}\n\n⬇️ *Downloading audio...*`
-          });
-        } catch (thumbErr) {
-          await sock.sendMessage(from, { 
-            text: `🎵 *${title}*\n📊 *Quality:* ${qualityReturned}\n📦 *Format:* ${format}\n${message ? `\n${message}` : ''}\n\n⬇️ *Downloading audio...*` 
-          });
-        }
-      }
-
-      // Download the audio
-      const audioResponse = await fetch(downloadUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-
-      if (!audioResponse.ok) {
-        throw new Error(`Audio download failed: ${audioResponse.status}`);
-      }
-
-      const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
-
-      if (audioBuffer.length < 5000) {
-        throw new Error("Downloaded file is too small. The link may be invalid.");
-      }
-
-      const fileSizeMB = (audioBuffer.length / 1024 / 1024).toFixed(1);
-
-      // Build available qualities message
-      let qualityList = '';
-      if (availableQualities.length > 0) {
-        qualityList = availableQualities.map(q => `${q}kbps`).join(', ');
-      }
-
-      const caption = `🎵 *${title}*\n📊 *Quality:* ${qualityReturned}\n📦 *Format:* ${format}\n📦 *Size:* ${fileSizeMB} MB\n${qualityList ? `📥 *Available:* ${qualityList}` : ''}\n\n✅ *Download Success*\n${message ? `\n⚠️ ${message}` : ''}`;
-
-      // Try to send as audio
-      try {
-        await sock.sendMessage(from, {
-          audio: audioBuffer,
-          mimetype: 'audio/mpeg',
-          fileName: `${title.replace(/[^a-zA-Z0-9]/g, '_')}.${format}`,
-          caption: caption,
-          ptt: false
-        });
-      } catch (sendErr) {
-        // Fallback: send as document
-        await sock.sendMessage(from, {
-          document: audioBuffer,
-          mimetype: 'audio/mpeg',
-          fileName: `${title.replace(/[^a-zA-Z0-9]/g, '_')}.${format}`,
-          caption: caption
-        });
-      }
-
-    } catch (error) {
-      console.error('YouTube MP3 download error:', error);
-
-      // Fallback: OmegaTech API
-      try {
-        const omegaUrl = 'https://omegatech-api.dixonomega.tech/api/download/play';
-        const fallbackRes = await fetch(`${omegaUrl}?url=${encodeURIComponent(url)}`);
-        const fallbackData = await fallbackRes.json();
-
-        let fallbackAudio = fallbackData.download_url || fallbackData.download || fallbackData.url;
-        let fallbackTitle = fallbackData.title || 'YouTube Audio';
-
-        if (fallbackAudio) {
-          const aRes = await fetch(fallbackAudio);
-          const aBuf = Buffer.from(await aRes.arrayBuffer());
-          if (aBuf.length > 5000) {
-            return await sock.sendMessage(from, {
-              audio: aBuf,
-              mimetype: 'audio/mpeg',
-              fileName: `${fallbackTitle}.mp3`,
-              caption: `🎵 *${fallbackTitle}*\n\n✅ *YouTube MP3 Download (fallback)*`
-            });
-          }
-        }
-      } catch (fallbackErr) {}
-
-      // Fallback: Prince API
-      try {
-        const princeUrl = 'https://api.princetechn.com/api/download/ytmp3';
-        const princeRes = await fetch(`${princeUrl}?apikey=prince&url=${encodeURIComponent(url)}`);
-        const princeData = await princeRes.json();
-
-        let princeAudio = princeData.result?.download_url || princeData.result?.url || princeData.download_url || princeData.url;
-        let princeTitle = princeData.result?.title || princeData.title || 'YouTube Audio';
-
-        if (princeAudio) {
-          const aRes = await fetch(princeAudio);
-          const aBuf = Buffer.from(await aRes.arrayBuffer());
-          if (aBuf.length > 5000) {
-            return await sock.sendMessage(from, {
-              audio: aBuf,
-              mimetype: 'audio/mpeg',
-              fileName: `${princeTitle}.mp3`,
-              caption: `🎵 *${princeTitle}*\n\n✅ *YouTube MP3 Download (fallback)*`
-            });
-          }
-        }
-      } catch (princeErr) {}
-
-      await sock.sendMessage(from, { 
-        text: `⚠️ Download Error: ${error.message || 'Could not download audio.'}\n\n💡 Make sure the URL is valid and try again.` 
-      });
-    }
   }
 });
 register({
@@ -5776,7 +5610,7 @@ register({
   }
 });
 register({
-  name: 'chatbot',
+  name: 'omegachat',
   aliases: ['claude', 'omegaai', 'chat', 'ai'],
   category: 'AI',
   description: 'Chat with Claude AI (OmegaTech) - supports multi-turn conversations',
@@ -9539,136 +9373,6 @@ register({
     await sock.sendMessage(from, { text, ...channelContext() });
   },
 });
-register({
-  name: 'play',
-  aliases: ['song', 'music', 'ytplay', 'ytaudio'],
-  category: 'DOWNLOADER',
-  description: 'Search and download YouTube audio as MP3',
-  async execute({ sock, from, msg, args, prefix, command }) {
-    // ─── BUILD TEXT FROM ARGS ───
-    const text = args.join(' ');
-    
-    if (!text) {
-      return await sock.sendMessage(from, { 
-        text: `🎵 Usage: ${prefix || '.'}play <song name or URL>\nExample: ${prefix || '.'}play Alone` 
-      });
-    }
-
-    await sock.sendMessage(from, { text: `🔍 Searching for: ${text}` });
-
-    try {
-      // ─── GET VIDEO INFO ───
-      let videoUrl = text;
-      let videoTitle = 'YouTube Audio';
-      let thumbnail = '';
-
-      if (text.includes('youtube.com') || text.includes('youtu.be')) {
-        const videoId = text.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1];
-        if (videoId) {
-          try {
-            const yts = require('yt-search');
-            const search = await yts({ videoId });
-            if (search) {
-              videoTitle = search.title || 'YouTube Audio';
-              thumbnail = search.thumbnail || '';
-            }
-          } catch (e) {}
-        }
-        videoUrl = text;
-      } else {
-        const yts = require('yt-search');
-        const search = await yts(text);
-        if (!search?.videos?.length) {
-          return await sock.sendMessage(from, { text: '❌ No results found.' });
-        }
-        const video = search.videos[0];
-        videoUrl = video.url;
-        videoTitle = video.title || 'YouTube Audio';
-        thumbnail = video.thumbnail || '';
-      }
-
-      // ─── SEND THUMBNAIL ───
-      if (thumbnail) {
-        try {
-          await sock.sendMessage(from, {
-            image: { url: thumbnail },
-            caption: `🎵 *${videoTitle}*\n⏳ Downloading...`
-          });
-        } catch (e) {}
-      }
-
-      // ─── DOWNLOAD AUDIO ───
-      let audioData = null;
-      const apis = [
-        { name: 'David Cyril', url: `https://apis.davidcyril.name.ng/download/ytmp3v2?url=${encodeURIComponent(videoUrl)}` },
-        { name: 'OmegaTech', url: `https://api.omegatech.app/api/download/play?search=${encodeURIComponent(videoUrl)}` },
-        { name: 'Prince', url: `https://api.princetechn.com/api/download/ytmp3?apikey=prince&url=${encodeURIComponent(videoUrl)}` },
-        { name: 'EliteProTech', url: `https://eliteprotech-apis.zone.id/ytmp3?url=${encodeURIComponent(videoUrl)}` },
-        { name: 'NexOracle', url: `https://api.nexoracle.com/download/ytmp3?url=${encodeURIComponent(videoUrl)}` }
-      ];
-
-      for (const api of apis) {
-        try {
-          const res = await fetch(api.url, { 
-            method: 'GET',
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-          });
-          if (!res.ok) continue;
-          const data = await res.json();
-          const download = data?.result?.url || data?.result?.download_url || data?.download_url || data?.url || data?.download;
-          if (download) {
-            audioData = { download, title: data?.result?.title || data?.title || videoTitle };
-            break;
-          }
-        } catch (e) {
-          console.log(`❌ ${api.name} failed:`, e.message);
-        }
-      }
-
-      if (!audioData) {
-        return await sock.sendMessage(from, { text: '❌ All download sources failed. Try again.' });
-      }
-
-      // ─── FETCH AUDIO BUFFER ───
-      const audioRes = await fetch(audioData.download, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-      });
-
-      if (!audioRes.ok) {
-        return await sock.sendMessage(from, { text: '❌ Failed to download audio file.' });
-      }
-
-      let audioBuffer = Buffer.from(await audioRes.arrayBuffer());
-
-      if (audioBuffer.length < 1000) {
-        return await sock.sendMessage(from, { text: '❌ Downloaded file is too small.' });
-      }
-
-      // ─── SEND AUDIO ───
-      const safeTitle = (audioData.title || 'audio').replace(/[^\w\s-]/g, '').trim();
-
-      try {
-        await sock.sendMessage(from, {
-          audio: audioBuffer,
-          mimetype: 'audio/mpeg',
-          fileName: `${safeTitle}.mp3`,
-          ptt: false
-        });
-      } catch (sendErr) {
-        await sock.sendMessage(from, {
-          document: audioBuffer,
-          mimetype: 'audio/mpeg',
-          fileName: `${safeTitle}.mp3`,
-          caption: `🎵 ${safeTitle}`
-        });
-      }
-
-    } catch (err) {
-      console.error('Play error:', err);
-      await sock.sendMessage(from, { text: `❌ Error: ${err.message || 'Unknown error'}` });
-    }
-  }
-});
 
 // -------------------- GCSTATUS --------------------
 register({
@@ -10027,249 +9731,6 @@ register({
   async execute({ sock, from }) {
     await sock.sendMessage(from, { text: `⏱ Uptime: ${formatUptime(Date.now() - START_TIME)}` });
   },
-});
-// playvideo.js - FINAL FIXED VERSION
-// playvideo.js - Video ONLY (no audio)
-register({
-  name: 'playvideo',
-  aliases: ['playv', 'ytmp4', 'ytvideo', 'watch', 'vplay'],
-  category: 'DOWNLOADER',
-  description: 'Search and download YouTube videos as MP4 (video only)',
-  async execute({ sock, from, msg, args, prefix, command }) {
-    const text = args.join(' ');
-    
-    if (!text) {
-      return await sock.sendMessage(from, { 
-        text: `🎬 Usage: ${prefix || '.'}playvideo <song name or URL>\nExample: ${prefix || '.'}playvideo Music Video 4K` 
-      });
-    }
-
-    await sock.sendMessage(from, { text: `🔍 Searching video: ${text}` });
-
-    try {
-      let videoUrl = text;
-      let videoTitle = 'YouTube Video';
-      let thumbnail = '';
-      let duration = '';
-      let artist = '';
-      let views = '';
-
-      // ─── RESOLVE URL OR SEARCH ───
-      if (text.includes('youtube.com') || text.includes('youtu.be')) {
-        const videoId = text.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1];
-        if (videoId) {
-          try {
-            const yts = require('yt-search');
-            const search = await yts({ videoId });
-            if (search) {
-              videoTitle = search.title || 'YouTube Video';
-              thumbnail = search.thumbnail || '';
-              duration = search.timestamp || search.duration || '';
-              artist = search.author?.name || search.author || '';
-              views = search.views ? `${search.views.toLocaleString()} views` : '';
-            }
-          } catch (e) {}
-        }
-        videoUrl = text;
-      } else {
-        const yts = require('yt-search');
-        const search = await yts(text);
-        if (!search?.videos?.length) {
-          return await sock.sendMessage(from, { text: '❌ No video results found.' });
-        }
-        // Pick highest quality video (filter by duration > 10s to avoid shorts)
-        const videos = search.videos.filter(v => (v.durationSeconds || 0) > 10);
-        const video = videos.length ? videos[0] : search.videos[0];
-        videoUrl = video.url;
-        videoTitle = video.title || 'YouTube Video';
-        thumbnail = video.thumbnail || '';
-        duration = video.timestamp || video.duration || '';
-        artist = video.author?.name || video.author || '';
-        views = video.views ? `${video.views.toLocaleString()} views` : '';
-      }
-
-      // ─── SEND THUMBNAIL PREVIEW ───
-      if (thumbnail) {
-        try {
-          await sock.sendMessage(from, {
-            image: { url: thumbnail },
-            caption: `🎬 *${videoTitle}*\n${artist ? `👤 ${artist}\n` : ''}${duration ? `⏱️ ${duration}\n` : ''}${views ? `👁️ ${views}\n` : ''}\n⏳ Downloading video...`
-          });
-        } catch (e) {}
-      }
-
-      // ─── VIDEO-ONLY API ENDPOINTS ───
-      let videoData = null;
-      const apis = [
-        { 
-          name: 'EliteProTech', 
-          url: `https://eliteprotech-apis.zone.id/ytmp4?url=${encodeURIComponent(videoUrl)}`,
-          extract: (d) => d?.result?.url || d?.result?.download_url || d?.download_url || d?.url || d?.video || d?.download
-        },
-        { 
-          name: 'David Cyril', 
-          url: `https://apis.davidcyril.name.ng/play?url=${encodeURIComponent(videoUrl)}&format=mp4`,
-          extract: (d) => d?.result?.url || d?.download_url || d?.url || d?.video
-        },
-        { 
-          name: 'Prince Tech', 
-          url: `https://api.princetechn.com/api/download/ytmp4?apikey=prince&url=${encodeURIComponent(videoUrl)}`,
-          extract: (d) => d?.result?.download_url || d?.download_url || d?.url
-        },
-        { 
-          name: 'OmegaTech', 
-          url: `https://api.omegatech.app/api/download/play?search=${encodeURIComponent(videoUrl)}`,
-          extract: (d) => d?.result?.url || d?.download || d?.url
-        },
-        { 
-          name: 'Vexa API', 
-          url: `https://api.vexa.tech/ytdl?url=${encodeURIComponent(videoUrl)}&format=video`,
-          extract: (d) => d?.video?.url || d?.download || d?.url
-        },
-        { 
-          name: 'Zeltrax Downloader', 
-          url: `https://zeltrax-api.vercel.app/ytmp4?url=${encodeURIComponent(videoUrl)}`,
-          extract: (d) => d?.video || d?.url || d?.download
-        },
-        {
-          name: 'NexOracle',
-          url: `https://api.nexoracle.com/downloader/yt-video?url=${encodeURIComponent(videoUrl)}${NEXORACLE_API_KEY ? `&apikey=${NEXORACLE_API_KEY}` : ''}`,
-          extract: (d) => d?.result?.download_url || d?.result?.url || d?.download_url || d?.url
-        }
-      ];
-
-      for (const api of apis) {
-        try {
-          const res = await fetch(api.url, { 
-            method: 'GET',
-            headers: { 
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              'Accept': 'application/json'
-            },
-            signal: AbortSignal.timeout(15000)
-          });
-          
-          if (!res.ok) continue;
-          const data = await res.json();
-          const download = api.extract(data);
-          
-          if (download && typeof download === 'string' && download.startsWith('http')) {
-            videoData = { 
-              download, 
-              title: data?.result?.title || data?.title || videoTitle,
-              quality: data?.result?.quality || data?.quality || '720p'
-            };
-            break;
-          }
-        } catch (e) {
-          console.log(`❌ ${api.name} failed:`, e.message);
-        }
-      }
-
-      if (!videoData) {
-        // ─── FALLBACK: Direct ytdl-core (video only) ───
-        try {
-          const ytdl = require('ytdl-core');
-          const info = await ytdl.getInfo(videoUrl);
-          const format = ytdl.chooseFormat(info.formats, { 
-            quality: 'highestvideo',
-            filter: 'videoonly'
-          });
-          if (format && format.url) {
-            videoData = {
-              download: format.url,
-              title: info.videoDetails.title,
-              quality: format.qualityLabel || '720p'
-            };
-          }
-        } catch (e) {
-          console.log('❌ ytdl-core fallback failed:', e.message);
-        }
-      }
-
-      if (!videoData) {
-        return await sock.sendMessage(from, { text: '❌ All video download sources failed. Try a different video.' });
-      }
-
-      // ─── FETCH VIDEO BUFFER ───
-      const videoRes = await fetch(videoData.download, {
-        headers: { 
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Range': 'bytes=0-' // Force full download
-        },
-        signal: AbortSignal.timeout(60000) // 60s timeout for large videos
-      });
-
-      if (!videoRes.ok) {
-        return await sock.sendMessage(from, { text: `❌ Failed to download video (HTTP ${videoRes.status}).` });
-      }
-
-      let videoBuffer = Buffer.from(await videoRes.arrayBuffer());
-
-      if (videoBuffer.length < 5000) {
-        return await sock.sendMessage(from, { text: '❌ Downloaded file is too small (corrupted).' });
-      }
-
-      const fileSizeMB = (videoBuffer.length / 1024 / 1024).toFixed(1);
-
-      // ─── SEND VIDEO ONLY ───
-      const safeTitle = (videoData.title || 'video').replace(/[^\w\s-]/g, '').trim();
-      const caption = `🎬 *${videoData.title || videoTitle}*\n📦 Size: ${fileSizeMB} MB\n🎯 Quality: ${videoData.quality || 'Auto'}\n📹 Format: MP4 (Video Only)`;
-
-      // If video > 16MB, send as document
-      if (videoBuffer.length > 16 * 1024 * 1024) {
-        await sock.sendMessage(from, {
-          document: videoBuffer,
-          mimetype: 'video/mp4',
-          fileName: `${safeTitle}.mp4`,
-          caption: `${caption}\n⚠️ Sent as document (WhatsApp 16MB limit)`,
-          contextInfo: {
-            externalAdReply: {
-              title: videoData.title || videoTitle,
-              body: `🎥 ${duration || 'Video'}`,
-              thumbnail: thumbnail ? await fetch(thumbnail).then(r => r.buffer()).catch(() => null) : null,
-              mediaType: 2,
-              renderLargerThumbnail: true
-            }
-          }
-        });
-      } else {
-        try {
-          await sock.sendMessage(from, {
-            video: videoBuffer,
-            mimetype: 'video/mp4',
-            caption: caption,
-            contextInfo: {
-              externalAdReply: {
-                title: videoData.title || videoTitle,
-                body: `🎥 ${duration || 'Video'}`,
-                thumbnail: thumbnail ? await fetch(thumbnail).then(r => r.buffer()).catch(() => null) : null,
-                mediaType: 2,
-                renderLargerThumbnail: true
-              }
-            }
-          });
-        } catch (sendErr) {
-          // Fallback: send as document if video fails
-          await sock.sendMessage(from, {
-            document: videoBuffer,
-            mimetype: 'video/mp4',
-            fileName: `${safeTitle}.mp4`,
-            caption: caption
-          });
-        }
-      }
-
-      // ─── LOG ───
-      console.log(`✅ Video sent: ${videoData.title} (${fileSizeMB}MB)`);
-
-    } catch (err) {
-      console.error('Playvideo error:', err);
-      await sock.sendMessage(from, { 
-        text: `❌ Error: ${err.message || 'Unknown error'}\n${err.stack ? 'Check logs for details' : ''}` 
-      });
-    }
-  }
 });
 
 register({
@@ -13271,5 +12732,9 @@ register({
     await sock.sendMessage(from, { text: text.trim() });
   },
 });
+
+// New commands (chatbot on/off, .lang, .play with 1/2 choice, games, ...)
+// live in ./extra.js to keep this file from growing further.
+require('./extra').install({ register, PREFIX });
 
 module.exports = { commands, PREFIX, BOT_NAME, setAutoBio, channelContext };

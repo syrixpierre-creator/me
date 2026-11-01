@@ -11,6 +11,27 @@ A multi-user WhatsApp bot built with [Baileys](https://github.com/WhiskeySockets
 5. Once linked, the bot instantly starts responding to that user's chats — commands like `.menu`, `.ping`, `.sticker`, etc.
 6. Each linked number runs as its own isolated session (own auth folder, own socket), so many users can be linked at the same time with no interference. The session cap is 40 concurrent sessions.
 
+## New features
+
+### 🤖 AI chatbot (`.chatbot on` / `.chatbot off`) — owner only
+Powered by the [xKiro](https://api.xkiro.com) API (OpenAI-compatible). Set `XKIRO_API_KEY` in Railway, or send `.chatbot key <your-key>` in your own chat ("Message yourself").
+- **DM**: answers everyone who writes to you in private.
+- **Groups (anti-spam)**: answers **only** when someone tags/mentions you or replies to one of your messages.
+- Remembers the last messages of each conversation, rate-limited per user and per chat, falls back to other free models if one is overloaded.
+- `.chatbot status`, `.chatbot model <model-id>`, `.chatbot reset`.
+- The old OmegaTech chat command is still available as `.omegachat` / `.ai` / `.claude`.
+
+### 🎵 `.play` — reply 1 = audio, 2 = video
+`.play <song or YouTube link>` shows the thumbnail + info, then the person who asked replies **1** (MP3) or **2** (MP4). `.ytmp3` / `.playvideo` download directly.
+Downloads scrape YouTube directly (`@distube/ytdl-core`, then `yt-dlp` — auto-downloaded into `./bin` on first use), and only fall back to public APIs last. If YouTube blocks your server IP ("sign in to confirm you're not a bot"), set `YT_COOKIE` / `YT_COOKIES_FILE`.
+
+### 🌐 Multi-language (`.lang`)
+English by default. `.lang fr` (or `francais`, `français`, `french`...). Languages: 🇬🇧 en, 🇫🇷 fr, 🇭🇹 ht (Kreyòl), 🇪🇸 es, 🇧🇷 pt, 🇸🇦 ar, 🇩🇪 de.
+Sent by the owner → changes the bot language for everyone. Sent by anyone else → changes only their own language (`.lang reset` to undo).
+
+### 🎮 New commands
+`.tictactoe` (`.ttt`, vs bot or `.ttt @friend`, play by sending 1-9), `.hangman`, `.guess`, `.mathquiz [easy|medium|hard]`, `.endgame`, `.rps`, `.slot`, `.8ball`, `.ship`, `.poll Q | a | b`, `.remind 10m text`, `.afk [reason]` / `.afk off`, `.genpass [length]`.
+
 ## Local setup
 
 ```bash

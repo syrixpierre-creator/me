@@ -9,20 +9,21 @@
     "dev": "node --watch index.js"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "dependencies": {
-    "xzcbailz": "latest",
+    "@distube/ytdl-core": "^5.2.0",
     "@hapi/boom": "^10.0.1",
+    "axios": "^1.7.7",
+    "chalk": "^4.1.2",
     "express": "^4.19.2",
+    "ffmpeg-static": "^5.2.0",
+    "form-data": "^4.0.0",
+    "mumaker": "^2.0.0",
     "pino": "^9.3.2",
     "qrcode": "^1.5.4",
-    "chalk": "^4.1.2",
+    "xzcbailz": "latest",
     "yt-search": "^2.10.3",
-    "ytdl-core": "^4.11.5",
-    "ffmpeg-static": "^5.2.0",
-    "axios": "^1.7.7",
-    "form-data": "^4.0.0",
-    "mumaker": "^2.0.0"
+    "ytdl-core": "^4.11.5"
   }
 }

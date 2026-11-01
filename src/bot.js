@@ -2,25 +2,40 @@ const { commands, channelContext } = require('./commands');
 const { checkForceJoin } = require('./forceJoin');
 const { getGlobalSetting, isSudo, isBanned, getCase, isAutoReplyEnabled, findAutoReply } = require('./store');
 const { DEFAULT_PREFIX } = require('./config');
-const { resolveSenderPhoneNumber } = require('./jidUtils');
+const { resolveSenderPhoneNumber, bareNumber } = require('./jidUtils');
+const { handlePlainText } = require('./commands/extra');
+const { maybeChatbotReply } = require('./chatbot');
+const { getLang, translateCommon } = require('./i18n');
+
+// Language for whoever sent `msg`. fromMe = the owner (linked account), who
+// follows the account-wide language.
+function langFor(msg, sessionId) {
+  return getLang(sessionId, msg?.key?.fromMe ? bareNumber(sessionId) : resolveSenderPhoneNumber(msg));
+}
 
 // Wraps sock.sendMessage so every reply sent while running ANY command
 // automatically carries the bot's branded contextInfo (the forwarded-from-
 // channel tag), without having to touch every single sendMessage call site
 // in commands/index.js individually.
-function withBrandedContext(sock) {
+function withBrandedContext(sock, lang) {
   const brand = channelContext();
-  if (!brand.contextInfo) return sock; // no channel configured — nothing to add
+  if (!brand.contextInfo && (!lang || lang === 'en')) return sock; // nothing to add
 
   return new Proxy(sock, {
     get(target, prop) {
       if (prop === 'sendMessage') {
         return async (jid, content, options) => {
-          if (content && typeof content === 'object' && !('delete' in content)) {
-            content = {
-              ...content,
-              contextInfo: { ...brand.contextInfo, ...(content.contextInfo || {}) },
-            };
+          if (content && typeof content === 'object' && !('delete' in content) && !('react' in content)) {
+            content = { ...content };
+            if (brand.contextInfo) {
+              content.contextInfo = { ...brand.contextInfo, ...(content.contextInfo || {}) };
+            }
+            // Multi-language: swap common fixed English phrases of the older
+            // commands ("Usage:", "Owner only command.", ...) for the chosen language.
+            if (lang && lang !== 'en') {
+              if (typeof content.text === 'string') content.text = translateCommon(lang, content.text);
+              if (typeof content.caption === 'string') content.caption = translateCommon(lang, content.caption);
+            }
           }
           return target.sendMessage(jid, content, options);
         };
@@ -86,17 +101,19 @@ function isReplyToBot(sock, msg) {
 // turned on with ".reply on".
 async function maybeAutoReply(sock, msg, sessionId, { from, text, isGroup }) {
   try {
-    if (msg.key.fromMe || !text) return;
-    if (!isAutoReplyEnabled(sessionId)) return;
-    if (isGroup && !isReplyToBot(sock, msg)) return;
-    if (isBanned(sessionId, resolveSenderPhoneNumber(msg))) return;
+    if (msg.key.fromMe || !text) return false;
+    if (!isAutoReplyEnabled(sessionId)) return false;
+    if (isGroup && !isReplyToBot(sock, msg)) return false;
+    if (isBanned(sessionId, resolveSenderPhoneNumber(msg))) return false;
 
     const reply = findAutoReply(sessionId, text);
-    if (reply === null) return;
+    if (reply === null) return false;
 
     await sock.sendMessage(from, { text: reply }, { quoted: msg });
+    return true;
   } catch (err) {
     console.error(`[bot:${sessionId}] auto-reply error:`, err.message);
+    return false;
   }
 }
 
@@ -116,9 +133,15 @@ async function handleSingleMessage(sock, msg, sessionId) {
 
     const text = extractText(msg.message).trim();
     if (!text.startsWith(prefix)) {
-      // Not a command — this is the only place plain-text messages are
-      // seen, so it's where the .addreply auto-responder gets checked.
-      await maybeAutoReply(sock, msg, sessionId, { from, text, isGroup });
+      // Not a command — this is the only place plain-text messages are seen.
+      // 1) answers to bot prompts / games (".play" → reply 1/2, tic-tac-toe moves...)
+      if (!(!msg.key.fromMe && isBanned(sessionId, resolveSenderPhoneNumber(msg)))) {
+        const plainSock = withBrandedContext(sock, langFor(msg, sessionId));
+        if (await handlePlainText(plainSock, msg, sessionId, { from, text, isGroup, prefix })) return;
+      }
+      // 2) the .addreply auto-responder, 3) the AI chatbot (".chatbot on").
+      const replied = await maybeAutoReply(sock, msg, sessionId, { from, text, isGroup });
+      if (!replied) await maybeChatbotReply(withBrandedContext(sock), msg, sessionId, { from, text, isGroup });
       return;
     }
 
@@ -162,7 +185,7 @@ async function handleSingleMessage(sock, msg, sessionId) {
     // Every command now gets the branded contextInfo tag on its replies,
     // not just GROUP-ADMIN/owner ones — withBrandedContext() is a no-op
     // Proxy when no channel is configured, so this is always safe.
-    const execSock = withBrandedContext(sock);
+    const execSock = withBrandedContext(sock, langFor(msg, sessionId));
 
     if (!command) {
       // Custom case (.addcase) — just send the stored response, with @user
