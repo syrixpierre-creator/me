@@ -1106,7 +1106,7 @@ const MENU_STYLES = ['classic', 'compact', 'minimal', 'neon', 'elegant'];
 
 function buildMenu(style, { commandPrefix, name, isGroup, sessionId, lang }) {
   const os = require('os');
-  const { t: tr, getSessionLang, LANGUAGES } = require('../i18n');
+  const { t: tr, getSessionLang, LANGUAGES, categoryName } = require('../i18n');
   const L = lang || getSessionLang(sessionId);
   const byCategory = {};
   for (const cmd of new Set(commands.values())) {
@@ -1140,7 +1140,7 @@ function buildMenu(style, { commandPrefix, name, isGroup, sessionId, lang }) {
   for (const cat of orderedCats) {
     const names = byCategory[cat];
     const icon = CATEGORY_STYLE[cat] || '📁';
-    menu += `\n╭─${icon} ${cat}\n`;
+    menu += `\n╭─${icon} ${categoryName(L, cat)}\n`;
     names.forEach((n) => {
       menu += `│ • ${n}\n`;
     });
@@ -12735,6 +12735,6 @@ register({
 
 // New commands (chatbot on/off, .lang, .play with 1/2 choice, games, ...)
 // live in ./extra.js to keep this file from growing further.
-require('./extra').install({ register, PREFIX });
+require('./extra').install({ register, PREFIX, commands });
 
 module.exports = { commands, PREFIX, BOT_NAME, setAutoBio, channelContext };

@@ -30,6 +30,13 @@ async function applyGroupState(sock, jid, announcement, label, emoji) {
  * here (rather than required directly) to avoid a require cycle between
  * sessionManager and this module.
  */
+// Scheduled open/close notices follow the account language.
+function localized(sock, sessionId) {
+  const { translatingSock } = require('./autoTranslate');
+  const { getSessionLang } = require('./i18n');
+  return translatingSock(sock, () => getSessionLang(sessionId));
+}
+
 function startGroupTimeScheduler(getSession) {
   setInterval(async () => {
     const time = currentTime();
@@ -50,9 +57,9 @@ function startGroupTimeScheduler(getSession) {
 
       lastFired.set(fireKey, time);
       if (match === 'open') {
-        await applyGroupState(session.sock, jid, false, 'opened', '🔓');
+        await applyGroupState(localized(session.sock, settings.scheduleSessionId), jid, false, 'opened', '🔓');
       } else {
-        await applyGroupState(session.sock, jid, true, 'closed', '🔒');
+        await applyGroupState(localized(session.sock, settings.scheduleSessionId), jid, true, 'closed', '🔒');
       }
     }
   }, 30 * 1000);

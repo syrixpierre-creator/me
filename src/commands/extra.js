@@ -418,7 +418,16 @@ async function handlePlainText(sock, msg, sessionId, ctx) {
 }
 
 // =================================================================== REGISTER
-function install({ register, PREFIX }) {
+function install({ register: rawRegister, PREFIX, commands }) {
+  // Everything registered here is already fully localized with t(), so
+  // bot.js must not machine-translate it again.
+  const register = (cmd) => rawRegister({ ...cmd, i18n: true });
+  // The menu lists bare command names (never translated) and localizes its
+  // own header/categories, so it's flagged the same way.
+  for (const name of ['menu', 'richmenu']) {
+    const c = commands && commands.get(name);
+    if (c) c.i18n = true;
+  }
   const P = (prefix) => prefix || PREFIX || '.';
 
   // ------------------------------------------------------------- CHATBOT

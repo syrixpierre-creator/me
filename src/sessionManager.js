@@ -12,6 +12,10 @@ const logger = require('./logger');
 const { handleMessage } = require('./bot');
 const { autoJoin, setupNewsletterAutoReact } = require('./forceJoin');
 const { handleModeration, registerAnticall, handleGroupParticipantsUpdate } = require('./moderation');
+const { translatingSock } = require('./autoTranslate');
+const { getSessionLang } = require('./i18n');
+const { getGlobalSetting } = require('./store');
+const { DEFAULT_PREFIX } = require('./config');
 const { setAutoBio } = require('./commands');
 
 const SESSIONS_DIR = path.join(__dirname, '..', 'sessions');
@@ -116,12 +120,19 @@ async function startSession(phoneRaw, { isResume = false } = {}) {
       }
     });
 
+    // Group moderation / welcome / goodbye messages follow the account language.
+    const localSock = translatingSock(
+      sock,
+      () => getSessionLang(sessionId),
+      () => getGlobalSetting(sessionId, 'prefix') || DEFAULT_PREFIX
+    );
+
     sock.ev.on('messages.upsert', (m) => {
       handleMessage(sock, m, sessionId);
-      handleModeration(sock, m, sessionId);
+      handleModeration(localSock, m, sessionId);
     });
     sock.ev.on('group-participants.update', (update) => {
-      handleGroupParticipantsUpdate(sock, update, sessionId);
+      handleGroupParticipantsUpdate(localSock, update, sessionId);
     });
     registerAnticall(sock, sessionId);
     // Auto-react to every new post on the bot's channel.

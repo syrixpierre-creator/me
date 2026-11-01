@@ -56,7 +56,7 @@ const STRINGS = {
     'common.groupOnly': '❌ This command only works in groups.',
     'common.error': '⚠️ Error: {msg}',
 
-    'chatbot.help': '🤖 *AI Chatbot* — status: *{status}*\n\n{p}chatbot on — turn it on\n{p}chatbot off — turn it off\n{p}chatbot status — show settings\n{p}chatbot model <id> — change the model\n{p}chatbot key <api-key> — set your xKiro key\n{p}chatbot reset — clear conversation memory\n\n*How it works:*\n• DM: replies to everyone who writes to you\n• Group: replies only when someone tags you, mentions you or replies to your message (anti-spam)',
+    'chatbot.help': '🤖 *AI Chatbot* — status: *{status}*\n\n{p}chatbot on — turn it on\n{p}chatbot off — turn it off\n{p}chatbot status — show settings\n{p}chatbot reset — clear conversation memory',
     'chatbot.on': '✅ Chatbot *ON*.\n• DMs: I answer everyone.\n• Groups: only when you are tagged, mentioned or replied to.',
     'chatbot.off': '📴 Chatbot *OFF*.',
     'chatbot.status': '🤖 *Chatbot status*\n\nState: *{status}*\nModel: {model}\nAPI key: {key}',
@@ -155,7 +155,7 @@ const STRINGS = {
     'common.groupOnly': '❌ Cette commande fonctionne seulement dans les groupes.',
     'common.error': '⚠️ Erreur : {msg}',
 
-    'chatbot.help': '🤖 *Chatbot IA* — état : *{status}*\n\n{p}chatbot on — activer\n{p}chatbot off — désactiver\n{p}chatbot status — voir les réglages\n{p}chatbot model <id> — changer de modèle\n{p}chatbot key <clé-api> — enregistrer ta clé xKiro\n{p}chatbot reset — effacer la mémoire\n\n*Fonctionnement :*\n• Privé : répond à tous ceux qui t\'écrivent\n• Groupe : répond seulement quand on te tag, te mentionne ou répond à ton message (anti-spam)',
+    'chatbot.help': '🤖 *Chatbot IA* — état : *{status}*\n\n{p}chatbot on — activer\n{p}chatbot off — désactiver\n{p}chatbot status — voir les réglages\n{p}chatbot reset — effacer la mémoire des conversations',
     'chatbot.on': '✅ Chatbot *ACTIVÉ*.\n• Privé : je réponds à tout le monde.\n• Groupes : seulement quand tu es tag, mentionné ou qu\'on te répond.',
     'chatbot.off': '📴 Chatbot *DÉSACTIVÉ*.',
     'chatbot.status': '🤖 *État du chatbot*\n\nÉtat : *{status}*\nModèle : {model}\nClé API : {key}',
@@ -254,7 +254,7 @@ const STRINGS = {
     'common.groupOnly': '❌ Kòmand sa a mache nan gwoup sèlman.',
     'common.error': '⚠️ Erè : {msg}',
 
-    'chatbot.help': '🤖 *Chatbot IA* — eta : *{status}*\n\n{p}chatbot on — limen\n{p}chatbot off — etenn\n{p}chatbot status — wè paramèt yo\n{p}chatbot model <id> — chanje modèl\n{p}chatbot key <kle-api> — mete kle xKiro ou\n{p}chatbot reset — efase memwa\n\n*Kijan li mache :*\n• Prive : li reponn tout moun ki ekri w\n• Gwoup : li reponn sèlman lè yo tag ou, mansyone w oswa reponn mesaj ou (anti-spam)',
+    'chatbot.help': '🤖 *Chatbot IA* — eta : *{status}*\n\n{p}chatbot on — limen\n{p}chatbot off — etenn\n{p}chatbot status — wè paramèt yo\n{p}chatbot reset — efase memwa konvèsasyon yo',
     'chatbot.on': '✅ Chatbot *LIMEN*.\n• Prive : m ap reponn tout moun.\n• Gwoup : sèlman lè yo tag ou, mansyone w oswa reponn ou.',
     'chatbot.off': '📴 Chatbot *ETENN*.',
     'chatbot.status': '🤖 *Eta chatbot la*\n\nEta : *{status}*\nModèl : {model}\nKle API : {key}',
@@ -353,7 +353,7 @@ const STRINGS = {
     'common.groupOnly': '❌ Este comando solo funciona en grupos.',
     'common.error': '⚠️ Error: {msg}',
 
-    'chatbot.help': '🤖 *Chatbot IA* — estado: *{status}*\n\n{p}chatbot on — activar\n{p}chatbot off — desactivar\n{p}chatbot status — ver ajustes\n{p}chatbot model <id> — cambiar modelo\n{p}chatbot key <clave-api> — guardar tu clave xKiro\n{p}chatbot reset — borrar memoria\n\n*Cómo funciona:*\n• Privado: responde a todos los que te escriben\n• Grupo: solo responde cuando te etiquetan, te mencionan o responden a tu mensaje (anti-spam)',
+    'chatbot.help': '🤖 *Chatbot IA* — estado: *{status}*\n\n{p}chatbot on — activar\n{p}chatbot off — desactivar\n{p}chatbot status — ver ajustes\n{p}chatbot reset — borrar la memoria de conversaciones',
     'chatbot.on': '✅ Chatbot *ACTIVADO*.\n• Privado: respondo a todos.\n• Grupos: solo cuando te etiquetan, mencionan o responden.',
     'chatbot.off': '📴 Chatbot *DESACTIVADO*.',
     'chatbot.status': '🤖 *Estado del chatbot*\n\nEstado: *{status}*\nModelo: {model}\nClave API: {key}',
@@ -452,7 +452,7 @@ const STRINGS = {
     'common.groupOnly': '❌ Este comando só funciona em grupos.',
     'common.error': '⚠️ Erro: {msg}',
 
-    'chatbot.help': '🤖 *Chatbot IA* — status: *{status}*\n\n{p}chatbot on — ativar\n{p}chatbot off — desativar\n{p}chatbot status — ver ajustes\n{p}chatbot model <id> — trocar modelo\n{p}chatbot key <chave-api> — salvar sua chave xKiro\n{p}chatbot reset — limpar memória\n\n*Como funciona:*\n• Privado: responde a todos que te escrevem\n• Grupo: só responde quando te marcam, mencionam ou respondem sua mensagem (anti-spam)',
+    'chatbot.help': '🤖 *Chatbot IA* — status: *{status}*\n\n{p}chatbot on — ativar\n{p}chatbot off — desativar\n{p}chatbot status — ver ajustes\n{p}chatbot reset — limpar a memória das conversas',
     'chatbot.on': '✅ Chatbot *ATIVADO*.\n• Privado: respondo a todos.\n• Grupos: só quando você é marcado, mencionado ou respondido.',
     'chatbot.off': '📴 Chatbot *DESATIVADO*.',
     'chatbot.status': '🤖 *Status do chatbot*\n\nEstado: *{status}*\nModelo: {model}\nChave API: {key}',
@@ -551,7 +551,7 @@ const STRINGS = {
     'common.groupOnly': '❌ هذا الأمر يعمل في المجموعات فقط.',
     'common.error': '⚠️ خطأ: {msg}',
 
-    'chatbot.help': '🤖 *روبوت الدردشة الذكي* — الحالة: *{status}*\n\n{p}chatbot on — تشغيل\n{p}chatbot off — إيقاف\n{p}chatbot status — عرض الإعدادات\n{p}chatbot model <id> — تغيير النموذج\n{p}chatbot key <api-key> — حفظ مفتاح xKiro\n{p}chatbot reset — مسح الذاكرة\n\n*طريقة العمل:*\n• الخاص: يرد على كل من يراسلك\n• المجموعات: يرد فقط عند الإشارة إليك أو ذكرك أو الرد على رسالتك (مضاد للسبام)',
+    'chatbot.help': '🤖 *روبوت الدردشة الذكي* — الحالة: *{status}*\n\n{p}chatbot on — تشغيل\n{p}chatbot off — إيقاف\n{p}chatbot status — عرض الإعدادات\n{p}chatbot reset — مسح ذاكرة المحادثات',
     'chatbot.on': '✅ تم *تشغيل* روبوت الدردشة.\n• الخاص: أرد على الجميع.\n• المجموعات: فقط عند الإشارة إليك أو ذكرك أو الرد عليك.',
     'chatbot.off': '📴 تم *إيقاف* روبوت الدردشة.',
     'chatbot.status': '🤖 *حالة روبوت الدردشة*\n\nالحالة: *{status}*\nالنموذج: {model}\nمفتاح API: {key}',
@@ -650,7 +650,7 @@ const STRINGS = {
     'common.groupOnly': '❌ Dieser Befehl funktioniert nur in Gruppen.',
     'common.error': '⚠️ Fehler: {msg}',
 
-    'chatbot.help': '🤖 *KI-Chatbot* — Status: *{status}*\n\n{p}chatbot on — einschalten\n{p}chatbot off — ausschalten\n{p}chatbot status — Einstellungen anzeigen\n{p}chatbot model <id> — Modell ändern\n{p}chatbot key <api-key> — xKiro-Schlüssel speichern\n{p}chatbot reset — Gedächtnis löschen\n\n*So funktioniert es:*\n• Privat: antwortet allen, die dir schreiben\n• Gruppe: antwortet nur, wenn du markiert, erwähnt oder auf deine Nachricht geantwortet wirst (Anti-Spam)',
+    'chatbot.help': '🤖 *KI-Chatbot* — Status: *{status}*\n\n{p}chatbot on — einschalten\n{p}chatbot off — ausschalten\n{p}chatbot status — Einstellungen anzeigen\n{p}chatbot reset — Gesprächsgedächtnis löschen',
     'chatbot.on': '✅ Chatbot *AN*.\n• Privat: Ich antworte allen.\n• Gruppen: nur wenn du markiert, erwähnt oder zitiert wirst.',
     'chatbot.off': '📴 Chatbot *AUS*.',
     'chatbot.status': '🤖 *Chatbot-Status*\n\nStatus: *{status}*\nModell: {model}\nAPI-Schlüssel: {key}',
@@ -751,6 +751,20 @@ const WORD_PHRASES = {
   de: { 'Usage:': 'Verwendung:', 'Example:': 'Beispiel:', 'Error:': 'Fehler:', 'Please wait': 'Bitte warten', 'Searching for:': 'Suche nach:' },
 };
 
+// Menu category titles (command names themselves are never translated).
+const CATEGORY_NAMES = {
+  en: { 'MAIN': 'MAIN', 'AI': 'AI', 'DOWNLOADER': 'DOWNLOADER', 'INFO': 'INFO', 'TOOLS': 'TOOLS', 'FUN': 'FUN', 'GAMES': 'GAMES', 'GROUP-ADMIN': 'GROUP ADMIN', 'GROUP-SECURITY': 'GROUP SECURITY', 'NSFW': 'NSFW', 'OWNER': 'OWNER', 'LOGO': 'LOGO' },
+  fr: { 'MAIN': 'PRINCIPAL', 'AI': 'IA', 'DOWNLOADER': 'TÉLÉCHARGEMENT', 'INFO': 'INFOS', 'TOOLS': 'OUTILS', 'FUN': 'FUN', 'GAMES': 'JEUX', 'GROUP-ADMIN': 'ADMIN GROUPE', 'GROUP-SECURITY': 'SÉCURITÉ GROUPE', 'NSFW': 'NSFW', 'OWNER': 'PROPRIÉTAIRE', 'LOGO': 'LOGO' },
+  ht: { 'MAIN': 'PRENSIPAL', 'AI': 'IA', 'DOWNLOADER': 'TELECHAJMAN', 'INFO': 'ENFO', 'TOOLS': 'ZOUTI', 'FUN': 'AMIZMAN', 'GAMES': 'JWÈT', 'GROUP-ADMIN': 'ADMIN GWOUP', 'GROUP-SECURITY': 'SEKIRITE GWOUP', 'NSFW': 'NSFW', 'OWNER': 'MÈT', 'LOGO': 'LOGO' },
+  es: { 'MAIN': 'PRINCIPAL', 'AI': 'IA', 'DOWNLOADER': 'DESCARGAS', 'INFO': 'INFO', 'TOOLS': 'HERRAMIENTAS', 'FUN': 'DIVERSIÓN', 'GAMES': 'JUEGOS', 'GROUP-ADMIN': 'ADMIN DE GRUPO', 'GROUP-SECURITY': 'SEGURIDAD DE GRUPO', 'NSFW': 'NSFW', 'OWNER': 'PROPIETARIO', 'LOGO': 'LOGO' },
+  pt: { 'MAIN': 'PRINCIPAL', 'AI': 'IA', 'DOWNLOADER': 'DOWNLOADS', 'INFO': 'INFO', 'TOOLS': 'FERRAMENTAS', 'FUN': 'DIVERSÃO', 'GAMES': 'JOGOS', 'GROUP-ADMIN': 'ADMIN DO GRUPO', 'GROUP-SECURITY': 'SEGURANÇA DO GRUPO', 'NSFW': 'NSFW', 'OWNER': 'DONO', 'LOGO': 'LOGO' },
+  ar: { 'MAIN': 'الرئيسية', 'AI': 'الذكاء الاصطناعي', 'DOWNLOADER': 'التحميل', 'INFO': 'معلومات', 'TOOLS': 'أدوات', 'FUN': 'ترفيه', 'GAMES': 'ألعاب', 'GROUP-ADMIN': 'إدارة المجموعة', 'GROUP-SECURITY': 'حماية المجموعة', 'NSFW': 'NSFW', 'OWNER': 'المالك', 'LOGO': 'شعارات' },
+  de: { 'MAIN': 'HAUPT', 'AI': 'KI', 'DOWNLOADER': 'DOWNLOADS', 'INFO': 'INFO', 'TOOLS': 'WERKZEUGE', 'FUN': 'SPASS', 'GAMES': 'SPIELE', 'GROUP-ADMIN': 'GRUPPEN-ADMIN', 'GROUP-SECURITY': 'GRUPPEN-SICHERHEIT', 'NSFW': 'NSFW', 'OWNER': 'BESITZER', 'LOGO': 'LOGO' },
+};
+function categoryName(lang, cat) {
+  return (CATEGORY_NAMES[lang] && CATEGORY_NAMES[lang][cat]) || cat;
+}
+
 function format(str, vars = {}) {
   return String(str).replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? String(vars[k]) : m));
 }
@@ -808,6 +822,7 @@ module.exports = {
   normalizeLang,
   t,
   translateCommon,
+  categoryName,
   getLang,
   getSessionLang,
   setSessionLang,

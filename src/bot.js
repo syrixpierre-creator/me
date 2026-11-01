@@ -6,6 +6,11 @@ const { resolveSenderPhoneNumber, bareNumber } = require('./jidUtils');
 const { handlePlainText } = require('./commands/extra');
 const { maybeChatbotReply } = require('./chatbot');
 const { getLang, translateCommon } = require('./i18n');
+const { translateContent } = require('./autoTranslate');
+
+// Commands whose output must stay as-is (song lyrics, Bible verses, the
+// translate tool's own result).
+const NO_AUTO_TRANSLATE = new Set(['lyrics', 'bible', 'translate']);
 
 // Language for whoever sent `msg`. fromMe = the owner (linked account), who
 // follows the account-wide language.
@@ -17,7 +22,10 @@ function langFor(msg, sessionId) {
 // automatically carries the bot's branded contextInfo (the forwarded-from-
 // channel tag), without having to touch every single sendMessage call site
 // in commands/index.js individually.
-function withBrandedContext(sock, lang) {
+// lang:      reader's language
+// translate: machine-translate text/captions into `lang` (legacy English
+//            commands). false for already-localized output or user content.
+function withBrandedContext(sock, lang, { translate = false, prefix = '.' } = {}) {
   const brand = channelContext();
   if (!brand.contextInfo && (!lang || lang === 'en')) return sock; // nothing to add
 
@@ -32,7 +40,13 @@ function withBrandedContext(sock, lang) {
             }
             // Multi-language: swap common fixed English phrases of the older
             // commands ("Usage:", "Owner only command.", ...) for the chosen language.
-            if (lang && lang !== 'en') {
+            if (lang && lang !== 'en' && translate) {
+              try {
+                content = await translateContent(content, lang, { prefix });
+              } catch (e) {
+                console.error('[translate]', e.message);
+              }
+              // Safety net if the translation service was unreachable.
               if (typeof content.text === 'string') content.text = translateCommon(lang, content.text);
               if (typeof content.caption === 'string') content.caption = translateCommon(lang, content.caption);
             }
@@ -171,7 +185,7 @@ async function handleSingleMessage(sock, msg, sessionId) {
       // Private mode: only the owner can trigger commands at all.
       if (getGlobalSetting(sessionId, 'mode') === 'private') return;
 
-      const allowed = await checkForceJoin(sock, from, sender);
+      const allowed = await checkForceJoin(withBrandedContext(sock, langFor(msg, sessionId), { translate: true, prefix }), from, sender);
       if (!allowed) return;
     }
 
@@ -185,7 +199,10 @@ async function handleSingleMessage(sock, msg, sessionId) {
     // Every command now gets the branded contextInfo tag on its replies,
     // not just GROUP-ADMIN/owner ones — withBrandedContext() is a no-op
     // Proxy when no channel is configured, so this is always safe.
-    const execSock = withBrandedContext(sock, langFor(msg, sessionId));
+    // Localized commands (command.i18n) are already in the right language;
+    // every other command's English output is auto-translated.
+    const autoTranslate = !!command && !command.i18n && !NO_AUTO_TRANSLATE.has(command.name);
+    const execSock = withBrandedContext(sock, langFor(msg, sessionId), { translate: autoTranslate, prefix });
 
     if (!command) {
       // Custom case (.addcase) — just send the stored response, with @user
