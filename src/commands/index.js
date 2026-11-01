@@ -822,7 +822,7 @@ register({
     await sock.sendMessage(from, { text: '⏳ Converting to GIF...' });
 
     try {
-      const { downloadMediaMessage } = require('@whiskeysockets/baileys');
+      const { downloadMediaMessage } = require('xzcbailz');
       
       let mediaBuffer = null;
       
@@ -934,7 +934,7 @@ register({
     await sock.sendMessage(from, { react: { text: '📤', key: msg.key } });
 
     try {
-      const { downloadMediaMessage } = require('@whiskeysockets/baileys');
+      const { downloadMediaMessage } = require('xzcbailz');
 
       let mediaBuffer = null;
       try {
@@ -7613,7 +7613,7 @@ register({
     await sock.sendMessage(from, { text: '⏳ Converting sticker to image...' });
 
     try {
-      const { downloadMediaMessage } = require('@whiskeysockets/baileys');
+      const { downloadMediaMessage } = require('xzcbailz');
       
       let mediaBuffer = null;
       
@@ -9381,7 +9381,7 @@ register({
   description: 'Post a group message/media as a WhatsApp Status update',
   async execute({ sock, from, sender, msg, args }) {
     const { isSenderAdmin } = require('../moderation');
-    const { downloadContentFromMessage, generateWAMessageFromContent } = require('@whiskeysockets/baileys');
+    const { downloadContentFromMessage, generateWAMessageFromContent } = require('xzcbailz');
 
     let isReacting = false;
 
@@ -9919,7 +9919,7 @@ register({
       return;
     }
 
-    const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+    const { downloadContentFromMessage } = require('xzcbailz');
     const stream = await downloadContentFromMessage(imageMsg || videoMsg, imageMsg ? 'image' : 'video');
     let buffer = Buffer.from([]);
     for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
@@ -9948,7 +9948,7 @@ register({
     }
 
     try {
-      const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+      const { downloadContentFromMessage } = require('xzcbailz');
       const stream = await downloadContentFromMessage(stickerMsg, 'sticker');
       let buffer = Buffer.from([]);
       for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
@@ -11838,7 +11838,7 @@ register({
       return;
     }
     try {
-      const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+      const { downloadContentFromMessage } = require('xzcbailz');
       const stream = await downloadContentFromMessage(imageMsg, 'image');
       let buffer = Buffer.from([]);
       for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
@@ -11895,7 +11895,7 @@ register({
 
     try {
       const path = require('path');
-      const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+      const { downloadContentFromMessage } = require('xzcbailz');
       const stream = await downloadContentFromMessage(imageMsg, 'image');
       let buffer = Buffer.from([]);
       for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);

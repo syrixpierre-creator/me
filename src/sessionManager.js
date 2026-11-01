@@ -104,7 +104,7 @@ async function startSession(phoneRaw, { isResume = false } = {}) {
         const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode;
         const loggedOut = statusCode === DisconnectReason.loggedOut;
         sessionEntry.status = 'disconnected';
-        console.log(`[session:${sessionId}] closed (loggedOut=${loggedOut})`);
+        console.log(`[session:${sessionId}] closed (loggedOut=${loggedOut}, code=${statusCode}${lastDisconnect?.error?.message ? `, ${lastDisconnect.error.message}` : ""})`);
 
         if (loggedOut) {
           sessions.delete(sessionId);
