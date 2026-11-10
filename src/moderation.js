@@ -452,8 +452,8 @@ async function handleGroupParticipantsUpdate(sock, update, sessionId) {
     const customTemplate = action === 'add' ? settings.welcomeMessage : settings.goodbyeMessage;
     const defaultTemplate =
       action === 'add'
-        ? '╭───────────────⭓\n│ INCONNU XD V2\n╰───────────────⭓\n\n╭─ WELCOME\n│ • GROUP: @group\n│ • USER: @user\n│ • MEMBERS: @members\n│ • ADMIN: @admin\n│ • inconnuxdv2.vercel.app\n╰───────────────⭓'
-        : '╭───────────────⭓\n│ INCONNU XD V2\n╰───────────────⭓\n\n╭─ GOODBYE\n│ • GROUP: @group\n│ • USER: @user\n│ • MEMBERS: @members\n│ • ADMIN: @admin\n│ • inconnuxdv2.vercel.app\n╰───────────────⭓';
+        ? '╭───────────────⭓\n│ INCONNU XD V2\n╰───────────────⭓\n\n╭─ WELCOME\n│ • GROUP: @group\n│ • USER: @user\n│ • MEMBERS: @members\n│ • ADMIN: @admin\n│ • miniinconnuxd.vercel.app\n╰───────────────⭓'
+        : '╭───────────────⭓\n│ INCONNU XD V2\n╰───────────────⭓\n\n╭─ GOODBYE\n│ • GROUP: @group\n│ • USER: @user\n│ • MEMBERS: @members\n│ • ADMIN: @admin\n│ • miniinconnuxd.vercel.app\n╰───────────────⭓';
     const template = customTemplate || defaultTemplate;
 
     for (const participant of joiners) {

@@ -9535,7 +9535,7 @@ register({
     text += `╰───────────────⭓\n\n`;
     text += `✅ *${getBotName(sessionId)} is alive!*\n`;
     text += `⏱️ Uptime: ${uptime}\n`;
-    text += `🌐 inconnuxdv2.vercel.app`;
+    text += `🌐 miniinconnuxd.vercel.app`;
     await sock.sendMessage(from, { text, ...channelContext() });
   },
 });
@@ -10433,7 +10433,7 @@ register({
 📦 *Project:* ${getBotName(sessionId)}
 ⚡ *Version:* 2.0.0
 
-> inconnuxdv2.vercel.app
+> miniinconnuxd.vercel.app
 
 > BY ${DEV_NAME}`;
 
