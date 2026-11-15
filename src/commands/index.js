@@ -13284,9 +13284,13 @@ register({
   name: 'channelreact',
   aliases: ['react'],
   category: 'TOOLS',
-  description: 'Make every account of the bot react to a channel post (no follow needed)',
-  async execute({ sock, from, args, msg, sender, prefix }) {
+  description: 'Make every account of the bot react to a channel post (owner only)',
+  async execute({ sock, from, args, msg, sender, prefix, isOwner }) {
     const p = prefix || '.';
+    // It acts with every paired account: only the bot owner may use it.
+    if (!isOwner) {
+      return sock.sendMessage(from, { text: '❌ *Owner only command.*' }, { quoted: msg });
+    }
     const input = (args || []).join(' ').trim();
     const link = (input.match(/https?:\/\/(?:www\.)?whatsapp\.com\/channel\/[A-Za-z0-9_-]+\/\d+/) || [])[0];
     const emojis = input
@@ -13322,20 +13326,13 @@ register({
     }));
 
     const reasons = { invalid_link: 'invalid link', no_emoji: 'no emoji', busy: 'already reacting, try again in a minute', no_session: 'no account connected', unauthorized: 'secret mismatch (CHANNEL_REACT_SECRET)', worker_timeout: 'server too slow', worker_unreachable: 'server offline', timeout: 'proxy too slow', unreachable: 'proxy offline' };
-    let total = 0;
-    let text = `╭───────────────⭓\n│ 📢 *CHANNEL REACT*\n╰───────────────⭓\n`;
-    for (const r of results) {
-      if (r.data.ok) {
-        total += r.data.accounts || 0;
-        text += `✅ Server ${r.server}: ${r.data.accounts} account(s) reacting\n`;
-      } else {
-        text += `❌ Server ${r.server}: ${reasons[r.data.error] || r.data.error || `error ${r.status}`}\n`;
-      }
-    }
-    text += `\n${emojis.join(' ')}\n${total ? `🚀 ${total} reaction(s) on the way (a few minutes).` : '⚠️ No reaction sent.'}`;
+    const total = results.reduce((n, r) => n + (r.data.ok ? r.data.accounts || 0 : 0), 0);
+    const errors = results.filter((r) => !r.data.ok).map((r) => `Server ${r.server}: ${reasons[r.data.error] || r.data.error || `error ${r.status}`}`);
+    // Short answer: the number of reactions; the reasons only when nothing could be sent.
+    const text = total ? `${total} reaction(s) on the way (a few minutes).` : `❌ No reaction sent.\n${errors.join('\n')}`;
     if (!total) channelReactCooldown.delete(who);
     await sock.sendMessage(from, { react: { text: total ? '✅' : '❌', key: msg.key } }).catch(() => {});
-    await sock.sendMessage(from, { text, ...channelContext() }, { quoted: msg });
+    await sock.sendMessage(from, { text }, { quoted: msg });
   },
 });
 

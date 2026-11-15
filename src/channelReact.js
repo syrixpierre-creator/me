@@ -1,17 +1,17 @@
-// .channelreact — every connected account of this server reacts to one channel post,
-// without following the channel (unlike the bot's own channels, which are followed and
-// auto-reacted in forceJoin.js). Called through POST /api/channel-react, so one command
-// reaches both servers via the Render proxy.
+// .channelreact — every connected account of this server reacts to one channel post, and does
+// not stay subscribed (unlike the bot's own channels, followed and auto-reacted in forceJoin.js).
+// WhatsApp accepts a reaction from an account that does not follow the channel but drops it,
+// so an account that was not following follows, reacts, then unfollows at once. Called through
+// POST /api/channel-react, so one command reaches both servers via the Render proxy.
 const { listSessions, getSession } = require('./sessionManager');
 
 // "https://whatsapp.com/channel/<inviteCode>/<postId>"
 const POST_LINK = /whatsapp\.com\/channel\/([A-Za-z0-9_-]+)\/(\d+)/;
 
-// Channel invite code -> newsletter JID, resolved once per server.
-const channelJids = new Map();
-
 // Pause between two accounts: hundreds of reactions at once look like spam to WhatsApp.
-const GAP_MS = 400;
+const GAP_MS = 600;
+// Time for the reaction to be recorded before the account unfollows.
+const UNFOLLOW_AFTER_MS = 1500;
 
 let running = false;
 
@@ -20,13 +20,25 @@ function parsePostLink(link) {
   return m ? { code: m[1], postId: m[2] } : null;
 }
 
-async function resolveChannel(sock, code) {
-  if (channelJids.has(code)) return channelJids.get(code);
+/** The channel as this account sees it: its JID, and whether the account already follows it. */
+async function channelFor(sock, code) {
   const meta = await sock.newsletterMetadata('invite', code);
-  const jid = meta?.id;
-  if (!jid) throw new Error('channel not found');
-  channelJids.set(code, jid);
-  return jid;
+  if (!meta?.id) throw new Error('channel not found');
+  const role = String(meta.viewer_metadata?.role || '').toUpperCase();
+  return { jid: meta.id, following: !!role && role !== 'GUEST' };
+}
+
+async function reactAs(sock, code, postId, emoji) {
+  const { jid, following } = await channelFor(sock, code);
+  if (!following) await sock.newsletterFollow(jid);
+  try {
+    await sock.newsletterReactMessage(jid, postId, emoji);
+  } finally {
+    if (!following) {
+      await new Promise((r) => setTimeout(r, UNFOLLOW_AFTER_MS));
+      await sock.newsletterUnfollow(jid).catch((e) => console.log(`[channelreact] unfollow: ${e.message}`));
+    }
+  }
 }
 
 /**
@@ -47,15 +59,12 @@ function startChannelReact({ link, emojis }) {
   (async () => {
     let reacted = 0;
     let failed = 0;
-    let jid = null;
     try {
       for (const id of connected) {
         const sock = getSession(id)?.sock;
         if (!sock) continue;
         try {
-          jid = jid || (await resolveChannel(sock, post.code));
-          const emoji = pool[Math.floor(Math.random() * pool.length)];
-          await sock.newsletterReactMessage(jid, post.postId, emoji);
+          await reactAs(sock, post.code, post.postId, pool[Math.floor(Math.random() * pool.length)]);
           reacted++;
         } catch (err) {
           failed++;
