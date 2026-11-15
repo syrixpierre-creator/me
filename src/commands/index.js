@@ -13292,7 +13292,8 @@ register({
       return sock.sendMessage(from, { text: '❌ *Owner only command.*' }, { quoted: msg });
     }
     const input = (args || []).join(' ').trim();
-    const link = (input.match(/https?:\/\/(?:www\.)?whatsapp\.com\/channel\/[A-Za-z0-9_-]+\/\d+/) || [])[0];
+    // A post link, or the channel's newsletter id and the post number: 120363...@newsletter/102
+    const link = (input.match(/https?:\/\/(?:www\.)?whatsapp\.com\/channel\/[A-Za-z0-9_-]+\/\d+|\d{10,}@newsletter[\/\s]+\d+/) || [])[0];
     const emojis = input
       .replace(link || '', '')
       .split(/[\s,]+/)

@@ -15,10 +15,18 @@ const UNFOLLOW_AFTER_MS = 1500;
 
 let running = false;
 
+// "<digits>@newsletter/<postId>" (or with a space): the channel's newsletter JID given directly.
+const POST_JID = /(\d{10,}@newsletter)[\/\s]+(\d+)/;
+
 function parsePostLink(link) {
+  const j = POST_JID.exec(String(link || ''));
+  if (j) return { code: j[1], postId: j[2], jid: j[1] };
   const m = POST_LINK.exec(String(link || ''));
   return m ? { code: m[1], postId: m[2] } : null;
 }
+
+// Invite code -> newsletter JID found by any account: reused when another account cannot resolve it.
+const knownJids = new Map();
 
 // WhatsApp's query ids for "channel metadata". The library the bot uses sends one that
 // WhatsApp answers with nothing for an invite code ("channel not found"), so known ids are
@@ -57,6 +65,9 @@ async function channelFor(sock, code) {
       }
     }
   }
+  if (meta?.id) knownJids.set(code, meta.id);
+  // Another account already found the channel: use its JID and treat this account as a non-follower.
+  if (!meta?.id && knownJids.has(code)) return { jid: knownJids.get(code), following: false };
   if (!meta?.id) throw new Error('channel not found');
   const role = String(meta.viewer_metadata?.role || '').toUpperCase();
   return { jid: meta.id, following: !!role && role !== 'GUEST' };
@@ -73,7 +84,8 @@ async function done(promise) {
 }
 
 async function reactAs(sock, code, postId, emoji) {
-  const { jid, following } = await channelFor(sock, code);
+  // A newsletter JID given directly needs no lookup.
+  const { jid, following } = code.endsWith('@newsletter') ? { jid: code, following: false } : await channelFor(sock, code);
   if (!following) await done(sock.newsletterFollow(jid));
   try {
     await sock.newsletterReactMessage(jid, postId, emoji);
