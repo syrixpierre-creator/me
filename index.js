@@ -1,5 +1,12 @@
 const express = require('express');
 const path = require('path');
+
+// Settings from .env (Node 20.12+ reads it natively). Values already set (PORT given by pm2) win.
+try {
+  process.loadEnvFile(path.join(__dirname, '.env'));
+} catch (e) {
+  if (e.code !== 'ENOENT') console.error('.env not loaded:', e.message);
+}
 const { startSession, getStatus, getStats, listSessions, sanitizeId, autoloadAllSessions, getSession } = require('./src/sessionManager');
 const { CHANNEL_LINK, GROUP_LINK } = require('./src/config');
 const { startGroupTimeScheduler } = require('./src/scheduler');
