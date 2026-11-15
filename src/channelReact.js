@@ -33,21 +33,33 @@ const knownJids = new Map();
 // tried in turn and the one that works is remembered.
 const METADATA_QUERY_IDS = ['6563316087068696', '24250201037901610', '26099060629688646', '6895563180530100', '25976052865358570'];
 let workingQueryId = null;
+// Older library versions send the viewer's role with the request; both forms are tried.
+let workingRole = false;
+let rawLogged = 0;
 
-async function mexMetadata(sock, code, queryId) {
+async function mexMetadata(sock, code, queryId, withRole) {
   const res = await sock.query({
     tag: 'iq',
     attrs: { id: sock.generateMessageTag(), type: 'get', to: 's.whatsapp.net', xmlns: 'w:mex' },
     content: [{
       tag: 'query',
       attrs: { query_id: queryId },
-      content: Buffer.from(JSON.stringify({ variables: { fetch_creation_time: true, fetch_full_image: false, fetch_viewer_metadata: true, input: { key: code, type: 'INVITE' } } }), 'utf-8'),
+      content: Buffer.from(JSON.stringify({ variables: { fetch_creation_time: true, fetch_full_image: false, fetch_viewer_metadata: true, input: { key: code, type: 'INVITE', ...(withRole ? { view_role: 'GUEST' } : {}) } } }), 'utf-8'),
     }],
   });
   const child = (Array.isArray(res?.content) ? res.content : []).find((n) => n.tag === 'result');
-  if (!child?.content) return null;
-  const data = JSON.parse(Buffer.from(child.content).toString('utf-8').replace(/^\x00+/, '').trim());
-  const meta = data?.data?.xwa2_newsletter;
+  const raw = child?.content ? Buffer.from(child.content).toString('utf-8').replace(/^\x00+/, '').trim() : JSON.stringify(res?.attrs || {});
+  let meta = null;
+  try {
+    const data = JSON.parse(raw)?.data || {};
+    // The answer's key changed between WhatsApp versions: take whichever entry carries an id.
+    meta = data.xwa2_newsletter || Object.values(data).find((v) => v && typeof v === 'object' && v.id) || null;
+  } catch { /* not JSON: logged below */ }
+  // What WhatsApp really answered, for the first failures only (to diagnose, not to flood the log).
+  if (!meta?.id && rawLogged < 12) {
+    rawLogged++;
+    console.log(`[channelreact] query ${queryId}${withRole ? '+role' : ''} answered: ${raw.slice(0, 400)}`);
+  }
   return meta?.id ? meta : null;
 }
 
@@ -56,11 +68,16 @@ async function channelFor(sock, code) {
   let meta = null;
   if (!workingQueryId) meta = await sock.newsletterMetadata('invite', code).catch(() => null);
   if (!meta?.id) {
-    for (const id of workingQueryId ? [workingQueryId] : METADATA_QUERY_IDS) {
-      meta = await mexMetadata(sock, code, id).catch(() => null);
+    const tries = workingQueryId ? [[workingQueryId, workingRole]] : METADATA_QUERY_IDS.flatMap((id) => [[id, false], [id, true]]);
+    for (const [id, role] of tries) {
+      meta = await mexMetadata(sock, code, id, role).catch((e) => {
+        if (rawLogged < 12) { rawLogged++; console.log(`[channelreact] query ${id}${role ? '+role' : ''} failed: ${e.message}`); }
+        return null;
+      });
       if (meta?.id) {
-        if (workingQueryId !== id) console.log(`[channelreact] channel metadata works with query ${id}`);
+        if (workingQueryId !== id) console.log(`[channelreact] channel metadata works with query ${id}${role ? '+role' : ''}`);
         workingQueryId = id;
+        workingRole = role;
         break;
       }
     }
