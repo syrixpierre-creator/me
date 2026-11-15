@@ -3,6 +3,7 @@ const path = require('path');
 const { startSession, getStatus, getStats, listSessions, sanitizeId, autoloadAllSessions, getSession } = require('./src/sessionManager');
 const { CHANNEL_LINK, GROUP_LINK } = require('./src/config');
 const { startGroupTimeScheduler } = require('./src/scheduler');
+const { startChannelReact } = require('./src/channelReact');
 
 global.__BOT_START_TIME = Date.now();
 
@@ -59,6 +60,17 @@ app.get('/api/status/:sessionId', (req, res) => {
 // Deliberately excludes phone numbers and session ids — see /api/sessions for that (admin-only).
 app.get('/api/stats', (_req, res) => {
   res.json(getStats());
+});
+
+// Every connected account of this server reacts to a channel post, without following the channel.
+// Called by the .channelreact command through the Render proxy (both servers at once).
+// With CHANNEL_REACT_SECRET set, the request must carry the same secret: otherwise anyone
+// could make all paired accounts react to anything.
+app.post('/api/channel-react', (req, res) => {
+  const secret = process.env.CHANNEL_REACT_SECRET || '';
+  if (secret && req.body?.secret !== secret) return res.status(401).json({ ok: false, error: 'unauthorized' });
+  const result = startChannelReact({ link: req.body?.link, emojis: req.body?.emojis });
+  res.status(result.ok ? 202 : result.error === 'busy' ? 409 : 400).json(result);
 });
 
 // Admin: list all active sessions

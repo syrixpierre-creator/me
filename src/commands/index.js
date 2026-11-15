@@ -13272,4 +13272,71 @@ register({
   },
 });
 
+// ---- .channelreact: all accounts of both servers react to a channel post ----
+// The command calls the Render proxy, which forwards to each server's POST /api/channel-react
+// (server 1 on port 3001, server 2 on port 3002). The channel is not followed.
+const CHANNEL_REACT_PROXY = (process.env.CHANNEL_REACT_PROXY || 'https://proxy-1-7znw.onrender.com').replace(/\/$/, '');
+const CHANNEL_REACT_SERVERS = ['1', '2'];
+const channelReactCooldown = new Map();
+const CHANNEL_REACT_COOLDOWN_MS = 3 * 60 * 1000;
+
+register({
+  name: 'channelreact',
+  aliases: ['react'],
+  category: 'TOOLS',
+  description: 'Make every account of the bot react to a channel post (no follow needed)',
+  async execute({ sock, from, args, msg, sender, prefix }) {
+    const p = prefix || '.';
+    const input = (args || []).join(' ').trim();
+    const link = (input.match(/https?:\/\/(?:www\.)?whatsapp\.com\/channel\/[A-Za-z0-9_-]+\/\d+/) || [])[0];
+    const emojis = input
+      .replace(link || '', '')
+      .split(/[\s,]+/)
+      .map((e) => e.trim())
+      .filter((e) => e && !/^[A-Za-z0-9]+$/.test(e))
+      .slice(0, 10);
+    if (!link || !emojis.length) {
+      return sock.sendMessage(from, {
+        text: `╭───────────────⭓\n│ 📢 *CHANNEL REACT*\n╰───────────────⭓\n\nUsage: ${p}channelreact <post link> <emojis>\nExample:\n${p}channelreact https://whatsapp.com/channel/0029Va.../125 😂, 😭, 💔\n\n• Open the post in WhatsApp, tap ⋮ → *Copy link*\n• Each account picks one of your emojis\n• Up to 10 emojis`,
+        ...channelContext(),
+      }, { quoted: msg });
+    }
+    const who = String(sender || from);
+    const last = channelReactCooldown.get(who) || 0;
+    if (Date.now() - last < CHANNEL_REACT_COOLDOWN_MS) {
+      const wait = Math.ceil((CHANNEL_REACT_COOLDOWN_MS - (Date.now() - last)) / 60000);
+      return sock.sendMessage(from, { text: `⏳ Wait ${wait} min before the next ${p}channelreact.` }, { quoted: msg });
+    }
+    channelReactCooldown.set(who, Date.now());
+    await sock.sendMessage(from, { react: { text: '⏳', key: msg.key } }).catch(() => {});
+
+    const body = { link, emojis, secret: process.env.CHANNEL_REACT_SECRET || undefined };
+    // The proxy on Render's free plan sleeps: the first call can take close to a minute.
+    const results = await Promise.all(CHANNEL_REACT_SERVERS.map(async (server) => {
+      try {
+        const r = await axios.post(`${CHANNEL_REACT_PROXY}/${server}/channel-react`, body, { timeout: 75000, validateStatus: () => true });
+        return { server, status: r.status, data: r.data || {} };
+      } catch (e) {
+        return { server, status: 0, data: { error: e.code === 'ECONNABORTED' ? 'timeout' : 'unreachable' } };
+      }
+    }));
+
+    const reasons = { invalid_link: 'invalid link', no_emoji: 'no emoji', busy: 'already reacting, try again in a minute', no_session: 'no account connected', unauthorized: 'secret mismatch (CHANNEL_REACT_SECRET)', worker_timeout: 'server too slow', worker_unreachable: 'server offline', timeout: 'proxy too slow', unreachable: 'proxy offline' };
+    let total = 0;
+    let text = `╭───────────────⭓\n│ 📢 *CHANNEL REACT*\n╰───────────────⭓\n`;
+    for (const r of results) {
+      if (r.data.ok) {
+        total += r.data.accounts || 0;
+        text += `✅ Server ${r.server}: ${r.data.accounts} account(s) reacting\n`;
+      } else {
+        text += `❌ Server ${r.server}: ${reasons[r.data.error] || r.data.error || `error ${r.status}`}\n`;
+      }
+    }
+    text += `\n${emojis.join(' ')}\n${total ? `🚀 ${total} reaction(s) on the way (a few minutes).` : '⚠️ No reaction sent.'}`;
+    if (!total) channelReactCooldown.delete(who);
+    await sock.sendMessage(from, { react: { text: total ? '✅' : '❌', key: msg.key } }).catch(() => {});
+    await sock.sendMessage(from, { text, ...channelContext() }, { quoted: msg });
+  },
+});
+
 module.exports = { commands, PREFIX, BOT_NAME, setAutoBio, channelContext };
