@@ -13273,10 +13273,12 @@ register({
 });
 
 // ---- .channelreact: all accounts of both servers react to a channel post ----
-// The command calls the Render proxy, which forwards to each server's POST /api/channel-react
-// (server 1 on port 3001, server 2 on port 3002). The channel is not followed.
-const CHANNEL_REACT_PROXY = (process.env.CHANNEL_REACT_PROXY || 'https://proxy-1-7znw.onrender.com').replace(/\/$/, '');
-const CHANNEL_REACT_SERVERS = ['1', '2'];
+// The command calls each server's POST /api/channel-react DIRECTLY (no proxy).
+// Two VPS servers by default (port 3001 and 3002); override with CHANNEL_REACT_URLS,
+// a comma-separated list of base URLs ending in /api. The channel is NOT followed.
+const CHANNEL_REACT_URLS = (process.env.CHANNEL_REACT_URLS
+  || 'http://200.141.31.158:3001/api,http://200.141.31.158:3002/api')
+  .split(',').map((u) => u.trim().replace(/\/$/, '')).filter(Boolean);
 const channelReactCooldown = new Map();
 const CHANNEL_REACT_COOLDOWN_MS = 3 * 60 * 1000;
 
@@ -13316,17 +13318,18 @@ register({
     await sock.sendMessage(from, { react: { text: '⏳', key: msg.key } }).catch(() => {});
 
     const body = { link, emojis, secret: process.env.CHANNEL_REACT_SECRET || undefined };
-    // The proxy on Render's free plan sleeps: the first call can take close to a minute.
-    const results = await Promise.all(CHANNEL_REACT_SERVERS.map(async (server) => {
+    // Each server starts its reactions in the background and answers right away (HTTP 202).
+    const results = await Promise.all(CHANNEL_REACT_URLS.map(async (base, i) => {
+      const server = String(i + 1);
       try {
-        const r = await axios.post(`${CHANNEL_REACT_PROXY}/${server}/channel-react`, body, { timeout: 75000, validateStatus: () => true });
+        const r = await axios.post(`${base}/channel-react`, body, { timeout: 30000, validateStatus: () => true });
         return { server, status: r.status, data: r.data || {} };
       } catch (e) {
         return { server, status: 0, data: { error: e.code === 'ECONNABORTED' ? 'timeout' : 'unreachable' } };
       }
     }));
 
-    const reasons = { invalid_link: 'invalid link', no_emoji: 'no emoji', busy: 'already reacting, try again in a minute', no_session: 'no account connected', unauthorized: 'secret mismatch (CHANNEL_REACT_SECRET)', worker_timeout: 'server too slow', worker_unreachable: 'server offline', timeout: 'proxy too slow', unreachable: 'proxy offline' };
+    const reasons = { invalid_link: 'invalid link', no_emoji: 'no emoji', busy: 'already reacting, try again in a minute', no_session: 'no account connected', unauthorized: 'secret mismatch (CHANNEL_REACT_SECRET)', worker_timeout: 'server too slow', worker_unreachable: 'server offline', timeout: 'server too slow', unreachable: 'server offline (check it is running on that port)' };
     const total = results.reduce((n, r) => n + (r.data.ok ? r.data.accounts || 0 : 0), 0);
     const errors = results.filter((r) => !r.data.ok).map((r) => `Server ${r.server}: ${reasons[r.data.error] || r.data.error || `error ${r.status}`}`);
     // Short answer: the number of reactions; the reasons only when nothing could be sent.
