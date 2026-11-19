@@ -100,18 +100,27 @@ async function done(promise) {
   }
 }
 
+// Same method as the QUEEN AKUMA bot (which works): react directly, WITHOUT following
+// the channel. Following then unfollowing withdrew the reaction, so neither is done.
 async function reactAs(sock, code, postId, emoji) {
-  // A newsletter JID given directly needs no lookup.
-  const { jid, following } = code.endsWith('@newsletter') ? { jid: code, following: false } : await channelFor(sock, code);
-  if (!following) await done(sock.newsletterFollow(jid));
-  try {
-    await sock.newsletterReactMessage(jid, postId, emoji);
-  } finally {
-    if (!following) {
-      await new Promise((r) => setTimeout(r, UNFOLLOW_AFTER_MS));
-      await done(sock.newsletterUnfollow(jid)).catch((e) => console.log(`[channelreact] unfollow: ${e.message}`));
+  // A newsletter JID given directly needs no lookup; otherwise resolve the invite once.
+  let jid = code.endsWith('@newsletter') ? code : knownJids.get(code);
+  if (!jid) {
+    const meta = await sock.newsletterMetadata('invite', code).catch(() => null);
+    jid = meta?.id || (await channelFor(sock, code)).jid;
+    knownJids.set(code, jid);
+  }
+  let lastErr = null;
+  for (let i = 0; i < 3; i++) {
+    try {
+      await sock.newsletterReactMessage(jid, String(postId), emoji);
+      return;
+    } catch (e) {
+      lastErr = e;
+      await new Promise((r) => setTimeout(r, 1200));
     }
   }
+  throw lastErr;
 }
 
 /**
